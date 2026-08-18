@@ -19,7 +19,11 @@
             "gdp + 1500000000",
             "povertyRate - 0.5"
           ]
-        }
+        },
+        "factionEffects": [
+          "businessTrust + 15",
+          "publicTrust - 10"
+        ]
       },
       {
         "id": "tax_cut_compromise",
@@ -36,6 +40,10 @@
         "immediateEffects": [
           "approvalRating - 5",
           "treasuryBudget + 500000000"
+        ],
+        "factionEffects": [
+          "businessTrust - 10",
+          "publicTrust + 5"
         ]
       }
     ]
@@ -111,7 +119,11 @@
             "unemploymentRate - 1.2",
             "gdpGrowthRate + 0.005"
           ]
-        }
+        },
+        "factionEffects": [
+          "publicTrust + 10",
+          "businessTrust - 5"
+        ]
       },
       {
         "id": "edu_fund_vocational",
@@ -126,7 +138,10 @@
           "effects": [
             "educationIndex + 6"
           ]
-        }
+        },
+        "factionEffects": [
+          "publicTrust + 5"
+        ]
       },
       {
         "id": "edu_ignore",
@@ -213,7 +228,11 @@
             "militaryStrength + 5",
             "crimeRate - 2"
           ]
-        }
+        },
+        "factionEffects": [
+          "militaryTrust + 15",
+          "businessTrust - 10"
+        ]
       },
       {
         "id": "mil_expand_moderate",
@@ -221,6 +240,10 @@
         "immediateEffects": [
           "treasuryBudget - 1800000000",
           "militaryStrength + 4"
+        ],
+        "factionEffects": [
+          "militaryTrust + 5",
+          "businessTrust - 5"
         ]
       },
       {
@@ -230,6 +253,10 @@
           "militaryStrength - 3",
           "approvalRating - 3",
           "treasuryBudget + 500000000"
+        ],
+        "factionEffects": [
+          "militaryTrust - 10",
+          "publicTrust + 5"
         ]
       }
     ]
@@ -937,6 +964,68 @@
           "gdpGrowthRate + 0.003",
           "approvalRating - 7",
           "foreignRelationsIndex + 2"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "investigate_scandal",
+    "title": "Cabinet Corruption Rumors",
+    "description": "Rumors suggest a cabinet minister has accepted bribes from foreign companies.",
+    "oneTime": true,
+    "options": [
+      {
+        "id": "scandal_investigate_full",
+        "title": "Launch full investigation",
+        "immediateEffects": [
+          "treasuryBudget - 200000000"
+        ],
+        "delayedEffects": {
+          "delayTurns": 2,
+          "spawnDecisionId": "scandal_findings"
+        }
+      },
+      {
+        "id": "scandal_ignore",
+        "title": "Ignore the rumors",
+        "immediateEffects": [
+          "corruptionLevel + 4",
+          "approvalRating - 3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scandal_findings",
+    "title": "Scandal Findings Discovered",
+    "description": "The corruption investigation has compiled ironclad proof of bribe-taking. Do you publish the findings?",
+    "unlockCondition": "0",
+    "oneTime": true,
+    "options": [
+      {
+        "id": "scandal_publish",
+        "title": "Publish the report",
+        "immediateEffects": [
+          "approvalRating - 10",
+          "corruptionLevel - 8",
+          "crimeRate - 3"
+        ],
+        "factionEffects": [
+          "publicTrust + 10",
+          "internationalTrust + 5",
+          "militaryTrust - 5"
+        ]
+      },
+      {
+        "id": "scandal_bury",
+        "title": "Bury the report",
+        "immediateEffects": [
+          "corruptionLevel + 8",
+          "approvalRating + 4"
+        ],
+        "factionEffects": [
+          "publicTrust - 15",
+          "businessTrust + 5"
         ]
       }
     ]

@@ -15,7 +15,7 @@ export function executeAutoplayStep(state: NationState, decision: Decision | und
     chosenOption = getRandomOption(decision);
   }
 
-  const nextState = resolveTurn(state, chosenOption);
+  const nextState = resolveTurn(state, chosenOption, decision?.id);
   const warnings: string[] = [];
 
   // Check clamping warnings

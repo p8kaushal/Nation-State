@@ -9,20 +9,20 @@ console.log("=== STARTING PHASE 4 CONTENT VALIDATION ===");
 const decisions = decisionsData as Decision[];
 console.log(`✓ decisions.json imported successfully with ${decisions.length} decisions.`);
 
-if (decisions.length < 15 || decisions.length > 20) {
-  throw new Error(`Expected 15-20 decisions, got ${decisions.length}`);
+if (decisions.length < 15) {
+  throw new Error(`Expected at least 15 decisions, got ${decisions.length}`);
 } else {
-  console.log(`✓ Decision count within target range (15-20): ${decisions.length}`);
+  console.log(`✓ Decision count (>= 15): ${decisions.length}`);
 }
 
 // 2. Validate events.json
 const events = eventsData as RandomEvent[];
 console.log(`✓ events.json imported successfully with ${events.length} events.`);
 
-if (events.length < 8 || events.length > 10) {
-  throw new Error(`Expected 8-10 events, got ${events.length}`);
+if (events.length < 8) {
+  throw new Error(`Expected at least 8 events, got ${events.length}`);
 } else {
-  console.log(`✓ Event count within target range (8-10): ${events.length}`);
+  console.log(`✓ Event count (>= 8): ${events.length}`);
 }
 
 const sampleState = getInitialState();
@@ -57,15 +57,24 @@ for (const d of decisions) {
       }
     }
 
+    if (opt.factionEffects) {
+      if (!Array.isArray(opt.factionEffects)) throw new Error(`factionEffects must be array in ${opt.id}`);
+      for (const eff of opt.factionEffects) {
+        validateEffectFormula(eff, `Option ${opt.id} factionEffect`);
+      }
+    }
+
     if (opt.delayedEffects) {
       if (typeof opt.delayedEffects.delayTurns !== 'number' || opt.delayedEffects.delayTurns <= 0) {
         throw new Error(`delayedEffects.delayTurns must be positive number in ${opt.id}`);
       }
-      if (!Array.isArray(opt.delayedEffects.effects) || opt.delayedEffects.effects.length === 0) {
-        throw new Error(`delayedEffects.effects must be non-empty array in ${opt.id}`);
-      }
-      for (const eff of opt.delayedEffects.effects) {
-        validateEffectFormula(eff, `Option ${opt.id} delayedEffect`);
+      if (opt.delayedEffects.effects) {
+        if (!Array.isArray(opt.delayedEffects.effects) || opt.delayedEffects.effects.length === 0) {
+          throw new Error(`delayedEffects.effects must be non-empty array in ${opt.id}`);
+        }
+        for (const eff of opt.delayedEffects.effects) {
+          validateEffectFormula(eff, `Option ${opt.id} delayedEffect`);
+        }
       }
     }
   }

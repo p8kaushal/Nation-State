@@ -1,4 +1,4 @@
-import { getInitialState, resolveTurn, setSeed } from './simulation';
+import { getInitialState, resolveTurn, setSeed, getAvailableDecisions } from './simulation';
 import { NationState, Decision } from './types';
 import decisionsData from './decisions.json';
 
@@ -30,12 +30,18 @@ function runGameTest() {
     console.log(`Treasury(B): ${(state.treasuryBudget / 1000000000).toFixed(2)} | Debt%: ${((state.nationalDebt / state.gdp) * 100).toFixed(1)}`);
     console.log(`Edu: ${state.educationIndex.toFixed(1)} | Appr: ${state.approvalRating.toFixed(1)}`);
 
-    const decision = decisions[i % decisions.length];
-    console.log(`\nEvent: ${decision.title}`);
-    const chosenOption = decision.options[0];
-    console.log(`> Player chose: ${chosenOption.title}\n`);
-
-    state = resolveTurn(state, chosenOption);
+    const availableDecisions = getAvailableDecisions(state, decisions);
+    const decision = availableDecisions.length > 0 ? availableDecisions[0] : undefined;
+    
+    if (decision) {
+      console.log(`\nEvent: ${decision.title}`);
+      const chosenOption = decision.options[0];
+      console.log(`> Player chose: ${chosenOption.title}\n`);
+      state = resolveTurn(state, chosenOption, decision.id);
+    } else {
+      console.log(`\nNo decisions available.\n`);
+      state = resolveTurn(state);
+    }
 
     if (state.recentLogs.length > 0) {
       console.log("Logs:");

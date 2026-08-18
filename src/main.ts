@@ -1,11 +1,11 @@
-import { getInitialState, resolveTurn } from './simulation';
+import { getInitialState, resolveTurn, getAvailableDecisions } from './simulation';
 import { NationState, Decision, DecisionOption } from './types';
 import decisionsData from './decisions.json';
 import { getRandomOption } from './autoplay';
 
 let state: NationState = getInitialState();
 const decisions: Decision[] = decisionsData as Decision[];
-let decisionIndex = 0;
+let currentDecision: Decision | undefined = undefined;
 const turnLogsHistory: string[] = [];
 
 // Autoplay state
@@ -74,33 +74,56 @@ function renderStats() {
 
   statsList.innerHTML = statsHtml;
 
-  // Pending effects
+  const trustMapping = [
+    { id: 'stat-militaryTrust', value: `${state.militaryTrust.toFixed(1)}` },
+    { id: 'stat-businessTrust', value: `${state.businessTrust.toFixed(1)}` },
+    { id: 'stat-publicTrust', value: `${state.publicTrust.toFixed(1)}` },
+    { id: 'stat-internationalTrust', value: `${state.internationalTrust.toFixed(1)}` }
+  ];
+
+  for (const m of trustMapping) {
+    const el = document.getElementById(m.id);
+    if (el) {
+      el.textContent = m.value;
+      if (parseFloat(m.value) < 30) {
+        el.style.color = '#dc2626'; // red
+        el.style.fontWeight = 'bold';
+      } else {
+        el.style.color = '';
+        el.style.fontWeight = '';
+      }
+    }
+  }
+
+  pendingEffectsList.innerHTML = '';
   if (state.pendingEffects.length === 0) {
-    pendingEffectsList.innerHTML = '<li>None</li>';
+    pendingEffectsList.innerHTML = '<li><em>None</em></li>';
   } else {
-    pendingEffectsList.innerHTML = state.pendingEffects
-      .map(
-        (eff) =>
-          `<li>Turn ${eff.targetTurn}: ${eff.description} (${eff.effects.join(', ')})</li>`
-      )
-      .join('');
+    state.pendingEffects.forEach(effect => {
+      const li = document.createElement('li');
+      li.textContent = `Turn ${effect.targetTurn}: ${effect.description}`;
+      pendingEffectsList.appendChild(li);
+    });
   }
 }
 
 function renderDecision() {
-  if (decisions.length === 0) {
-    decisionTitle.textContent = 'No decisions available';
-    decisionDesc.textContent = '';
+  const availableDecisions = getAvailableDecisions(state, decisions);
+  if (availableDecisions.length === 0) {
+    currentDecision = undefined;
+    decisionTitle.textContent = 'No active issues';
+    decisionDesc.textContent = 'There are no pressing matters requiring your attention this turn.';
     decisionOptions.innerHTML = '';
     return;
   }
 
-  const currentDecision = decisions[decisionIndex % decisions.length];
-  decisionTitle.textContent = currentDecision.title;
-  decisionDesc.textContent = currentDecision.description;
+  const dec = availableDecisions[Math.floor(Math.random() * availableDecisions.length)];
+  currentDecision = dec;
+  decisionTitle.textContent = dec.title;
+  decisionDesc.textContent = dec.description;
 
   decisionOptions.innerHTML = '';
-  currentDecision.options.forEach((option) => {
+  dec.options.forEach((option) => {
     const btn = document.createElement('button');
     btn.className = 'option-btn';
 
@@ -108,7 +131,10 @@ function renderDecision() {
     if (option.immediateEffects && option.immediateEffects.length > 0) {
       effectsSummary += `[Immediate: ${option.immediateEffects.join(', ')}] `;
     }
-    if (option.delayedEffects) {
+    if (option.factionEffects && option.factionEffects.length > 0) {
+      effectsSummary += `[Faction: ${option.factionEffects.join(', ')}] `;
+    }
+    if (option.delayedEffects && option.delayedEffects.effects) {
       effectsSummary += `[In ${option.delayedEffects.delayTurns} turns: ${option.delayedEffects.effects.join(', ')}]`;
     }
 
@@ -117,7 +143,7 @@ function renderDecision() {
       ${effectsSummary ? `<span class="option-effects">${effectsSummary}</span>` : ''}
     `;
 
-    btn.addEventListener('click', () => handleTurn(option));
+    btn.addEventListener('click', () => handleTurn(option, dec.id));
     decisionOptions.appendChild(btn);
   });
 }
@@ -142,7 +168,6 @@ function render() {
     gameOverTitle.className = `game-over-title ${state.gameResult || ''}`;
     gameOverReason.textContent = state.gameOverReason || '';
     
-    // Disable inputs
     const btns = document.querySelectorAll('.option-btn');
     btns.forEach((btn) => ((btn as HTMLButtonElement).disabled = true));
     nextTurnBtn.disabled = true;
@@ -152,10 +177,9 @@ function render() {
   }
 }
 
-function handleTurn(chosenOption?: DecisionOption) {
+function handleTurn(chosenOption?: DecisionOption, decisionId?: string) {
   const previousTurn = state.turn;
-  state = resolveTurn(state, chosenOption);
-  decisionIndex++;
+  state = resolveTurn(state, chosenOption, decisionId);
 
   turnLogsHistory.push(`\n=== Turn ${previousTurn} Resolution ===`);
   if (chosenOption) {
@@ -189,13 +213,15 @@ function runAutoplayLoop() {
     return;
   }
 
-  const currentDecision = decisions.length > 0 ? decisions[decisionIndex % decisions.length] : undefined;
+  const availableDecisions = getAvailableDecisions(state, decisions);
+  const decisionToPlay = availableDecisions.length > 0 ? availableDecisions[Math.floor(Math.random() * availableDecisions.length)] : undefined;
+  
   let chosenOption: DecisionOption | undefined = undefined;
-  if (currentDecision) {
-    chosenOption = getRandomOption(currentDecision);
+  if (decisionToPlay) {
+    chosenOption = getRandomOption(decisionToPlay);
   }
 
-  handleTurn(chosenOption);
+  handleTurn(chosenOption, decisionToPlay?.id);
 
   if (!state.gameOver) {
     const delay = parseInt(autoplayDelaySelect.value, 10);
@@ -225,7 +251,6 @@ nextTurnBtn.addEventListener('click', () => {
 restartBtn.addEventListener('click', () => {
   if (isAutoplayRunning) stopAutoplay();
   state = getInitialState();
-  decisionIndex = 0;
   turnLogsHistory.length = 0;
   turnLogsHistory.push(`=== Game Restarted ===`);
   render();

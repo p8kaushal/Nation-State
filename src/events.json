@@ -65,16 +65,45 @@
     ]
   },
   {
-    "id": "civil_unrest_strikes",
-    "title": "Mass Civil Unrest & Strikes",
-    "description": "Public dissatisfaction over living conditions and economic hardship spills over into widespread street demonstrations.",
-    "triggerCondition": "approvalRating < 32",
-    "probabilityWeight": "(35 - approvalRating) * 0.02",
+    "id": "civil_protests",
+    "title": "Mass Public Protests",
+    "description": "Unpopular policies have driven citizens to protest in the streets.",
+    "triggerCondition": "approvalRating < 35",
+    "probabilityWeight": "0.4",
     "effects": [
-      "approvalRating - 6",
-      "unemploymentRate + 0.8",
-      "crimeRate + 4",
-      "gdpGrowthRate - 0.004"
+      "publicTrust - 8"
+    ],
+    "setFlag": "activeProtests",
+    "escalatesTo": "general_strikes",
+    "escalateTurns": 3
+  },
+  {
+    "id": "general_strikes",
+    "title": "National General Strike",
+    "description": "Protests have shut down major labor sectors. Economic activity is grinding to a halt.",
+    "triggerCondition": "approvalRating < 30 && eventFlags.activeProtests > 0",
+    "probabilityWeight": "0.5",
+    "effects": [
+      "businessTrust - 12",
+      "gdpGrowthRate - 0.015"
+    ],
+    "setFlag": "activeStrikes",
+    "clearFlag": "activeProtests",
+    "escalatesTo": "civil_riots",
+    "escalateTurns": 3
+  },
+  {
+    "id": "civil_riots",
+    "title": "Widespread Riots",
+    "description": "Strikers and police clash in the capital. The state is losing control.",
+    "triggerCondition": "approvalRating < 25 && eventFlags.activeStrikes > 0",
+    "probabilityWeight": "0.6",
+    "effects": [
+      "crimeRate + 15",
+      "approvalRating - 15",
+      "militaryTrust - 10",
+      "publicTrust - 10",
+      "gdpGrowthRate - 0.02"
     ]
   },
   {
@@ -91,7 +120,7 @@
     ]
   },
   {
-    "id": "diplomatic_breakthrough",
+    "id": "historic_diplomatic_accord",
     "title": "Historic Diplomatic Accord",
     "description": "Successful international diplomacy produces a breakthrough treaty, boosting trade corridors and international reputation.",
     "triggerCondition": "foreignRelationsIndex > 65",
@@ -127,6 +156,126 @@
       "foreignRelationsIndex - 7",
       "approvalRating - 5",
       "nationalDebt + 1000000000"
+    ]
+  },
+  {
+    "id": "credit_downgrade",
+    "title": "Sovereign Credit Rating Downgrade",
+    "description": "International credit agencies have downgraded the nation's bond rating due to high debt-to-GDP.",
+    "triggerCondition": "nationalDebt / gdp > 0.8 && eventFlags.creditWatch == 0",
+    "probabilityWeight": "(nationalDebt / gdp) * 0.1",
+    "effects": [
+      "businessTrust - 10",
+      "internationalTrust - 10",
+      "gdpGrowthRate - 0.01"
+    ],
+    "setFlag": "creditWatch",
+    "escalatesTo": "imf_austerity",
+    "escalateTurns": 4
+  },
+  {
+    "id": "imf_austerity",
+    "title": "IMF Austerity Program Imposed",
+    "description": "To avoid immediate default, the IMF has stepped in to force severe public budget restrictions.",
+    "triggerCondition": "nationalDebt / gdp > 1.0 && eventFlags.creditWatch > 0",
+    "probabilityWeight": "0.5",
+    "effects": [
+      "educationIndex - 10",
+      "healthcareIndex - 10",
+      "publicTrust - 15",
+      "businessTrust - 10",
+      "gdpGrowthRate - 0.01"
+    ],
+    "setFlag": "imfSupervision",
+    "clearFlag": "creditWatch",
+    "escalatesTo": "sovereign_default",
+    "escalateTurns": 4
+  },
+  {
+    "id": "sovereign_default",
+    "title": "Sovereign Debt Default",
+    "description": "The government has run out of cash and defaulted on all foreign debt obligations. Lenders have frozen national assets.",
+    "triggerCondition": "nationalDebt / gdp > 1.5 && eventFlags.imfSupervision > 0",
+    "probabilityWeight": "0.6",
+    "effects": [
+      "treasuryBudget = 0",
+      "businessTrust - 30",
+      "gdpGrowthRate - 0.05",
+      "approvalRating - 30",
+      "povertyRate + 20",
+      "unemploymentRate + 15"
+    ]
+  },
+  {
+    "id": "localized_outbreak",
+    "title": "Severe Viral Outbreak",
+    "description": "A rare and highly contagious pathogen is spreading rapidly in major city centers.",
+    "triggerCondition": "healthcareIndex < 40 && eventFlags.epidemicWarning == 0",
+    "probabilityWeight": "(50 - healthcareIndex) * 0.015",
+    "effects": [
+      "healthcareIndex - 5",
+      "publicTrust - 5",
+      "approvalRating - 3"
+    ],
+    "setFlag": "epidemicWarning",
+    "escalatesTo": "national_pandemic",
+    "escalateTurns": 3
+  },
+  {
+    "id": "national_pandemic",
+    "title": "National Pandemic Crisis",
+    "description": "The localized virus has escalated to a full-scale nationwide pandemic.",
+    "triggerCondition": "healthcareIndex < 35 && eventFlags.epidemicWarning > 0",
+    "probabilityWeight": "0.5",
+    "effects": [
+      "population - population * 0.02",
+      "gdpGrowthRate - 0.02",
+      "approvalRating - 15",
+      "businessTrust - 10",
+      "publicTrust - 10",
+      "healthcareIndex - 10"
+    ],
+    "setFlag": "pandemicCrisis",
+    "clearFlag": "epidemicWarning",
+    "escalatesTo": "healthcare_collapse",
+    "escalateTurns": 3
+  },
+  {
+    "id": "healthcare_collapse",
+    "title": "National Healthcare System Collapse",
+    "description": "Hospitals are overwhelmed, medical supplies are exhausted, and public order is fracturing.",
+    "triggerCondition": "healthcareIndex < 25 && eventFlags.pandemicCrisis > 0",
+    "probabilityWeight": "0.6",
+    "effects": [
+      "population - population * 0.05",
+      "approvalRating - 20",
+      "publicTrust - 20",
+      "militaryTrust - 10",
+      "crimeRate + 15"
+    ]
+  },
+  {
+    "id": "agricultural_drought",
+    "title": "Severe Agricultural Drought",
+    "description": "A severe heatwave has destroyed major crops across farming regions.",
+    "triggerCondition": "environmentIndex < 50",
+    "probabilityWeight": "0.3",
+    "effects": [
+      "environmentIndex - 5",
+      "povertyRate + 5",
+      "gdpGrowthRate - 0.008"
+    ]
+  },
+  {
+    "id": "diplomatic_breakthrough",
+    "title": "Diplomatic Breakthrough",
+    "description": "Successful negotiations have signed a trade expansion pact with a foreign trade block.",
+    "triggerCondition": "foreignRelationsIndex > 70",
+    "probabilityWeight": "0.3",
+    "effects": [
+      "foreignRelationsIndex + 10",
+      "internationalTrust + 10",
+      "gdpGrowthRate + 0.008"
     ]
   }
 ]

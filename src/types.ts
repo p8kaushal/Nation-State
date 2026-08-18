@@ -2,6 +2,7 @@ export interface PendingEffect {
   targetTurn: number;
   effects: string[]; // List of formula strings e.g. "educationIndex + 15"
   description: string;
+  spawnDecisionId?: string;
 }
 
 export interface NationState {
@@ -21,21 +22,31 @@ export interface NationState {
   nationalDebt: number;
   crimeRate: number;
   foreignRelationsIndex: number;
+  militaryTrust: number;
+  businessTrust: number;
+  publicTrust: number;
+  internationalTrust: number;
   debtCrisis: boolean;
   pendingEffects: PendingEffect[];
   recentLogs: string[];
   gameOver: boolean;
   gameResult: 'win' | 'lose' | null;
   gameOverReason: string | null;
+  resolvedDecisionIds: string[];
+  activeSpawnedDecisionId: string | null;
+  eventFlags: Record<string, boolean>;
+  activeEscalations: { eventId: string; targetTurn: number; }[];
 }
 
 export interface DecisionOption {
   id: string;
   title: string;
   immediateEffects?: string[];
+  factionEffects?: string[];
   delayedEffects?: {
     delayTurns: number;
-    effects: string[];
+    effects?: string[];
+    spawnDecisionId?: string;
   };
 }
 
@@ -44,6 +55,8 @@ export interface Decision {
   title: string;
   description: string;
   options: DecisionOption[];
+  unlockCondition?: string;
+  oneTime?: boolean;
 }
 
 export interface RandomEvent {
@@ -53,4 +66,8 @@ export interface RandomEvent {
   triggerCondition: string; // e.g. "corruptionLevel > 40"
   probabilityWeight: string; // e.g. "corruptionLevel * 0.01"
   effects: string[];
+  escalatesTo?: string;
+  escalateTurns?: number;
+  setFlag?: string;
+  clearFlag?: string;
 }

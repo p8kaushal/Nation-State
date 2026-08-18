@@ -1,4 +1,4 @@
-import { NationState, DecisionOption, PendingEffect, RandomEvent } from './types';
+import { NationState, DecisionOption, PendingEffect, RandomEvent, Decision } from './types';
 import eventsData from './events.json';
 
 let seed = 42;
@@ -33,12 +33,20 @@ export function getInitialState(): NationState {
     nationalDebt: 28000000000,
     crimeRate: 35,
     foreignRelationsIndex: 55,
+    militaryTrust: 50,
+    businessTrust: 50,
+    publicTrust: 50,
+    internationalTrust: 50,
     debtCrisis: false,
     pendingEffects: [],
     recentLogs: [],
     gameOver: false,
     gameResult: null,
     gameOverReason: null,
+    resolvedDecisionIds: [] as string[],
+    activeSpawnedDecisionId: null,
+    eventFlags: {},
+    activeEscalations: [],
   };
 }
 
@@ -49,6 +57,15 @@ export function evaluateExpression(state: any, expression: string): number {
     const regex = new RegExp(`\\b${key}\\b`, 'g');
     expr = expr.replace(regex, `(${Number(state[key])})`);
   }
+  
+  if (state.eventFlags) {
+    for (const key of Object.keys(state.eventFlags)) {
+      const regex = new RegExp(`\\beventFlags\\.${key}\\b`, 'g');
+      expr = expr.replace(regex, `(${state.eventFlags[key] ? 1 : 0})`);
+    }
+  }
+  expr = expr.replace(/\beventFlags\.[a-zA-Z0-9_]+\b/g, '(0)');
+  
   try {
     return new Function(`return ${expr};`)();
   } catch (e) {
@@ -73,17 +90,30 @@ export function applyEffect(state: NationState, effectStr: string) {
   }
 }
 
-export function applyDecision(state: NationState, option: DecisionOption) {
+export function applyDecision(state: NationState, option: DecisionOption, decisionId?: string) {
   state.recentLogs.push(`Decision chosen: ${option.title}`);
+  if (decisionId && !state.resolvedDecisionIds.includes(decisionId)) {
+    state.resolvedDecisionIds.push(decisionId);
+  }
+  if (state.activeSpawnedDecisionId === decisionId) {
+    state.activeSpawnedDecisionId = null;
+  }
+
   if (option.immediateEffects) {
     for (const effect of option.immediateEffects) {
+      applyEffect(state, effect);
+    }
+  }
+  if (option.factionEffects) {
+    for (const effect of option.factionEffects) {
       applyEffect(state, effect);
     }
   }
   if (option.delayedEffects) {
     state.pendingEffects.push({
       targetTurn: state.turn + option.delayedEffects.delayTurns,
-      effects: option.delayedEffects.effects,
+      effects: option.delayedEffects.effects || [],
+      spawnDecisionId: option.delayedEffects.spawnDecisionId,
       description: `Delayed effects from: ${option.title}`
     });
   }
@@ -153,6 +183,23 @@ function simulateNaturalDrift(next: NationState): void {
   next.corruptionLevel += (20.0 - next.corruptionLevel) * 0.03;
   const envDecay = 0.1 * (next.gdp / 50000000000);
   next.environmentIndex = clamp(next.environmentIndex - envDecay + 0.05);
+
+  // Trust Drifts
+  next.militaryTrust += (50.0 - next.militaryTrust) * 0.02;
+  next.businessTrust += (50.0 - next.businessTrust) * 0.02;
+  next.publicTrust += (50.0 - next.publicTrust) * 0.02;
+  next.internationalTrust += (50.0 - next.internationalTrust) * 0.02;
+
+  // Faction Interdependency Rules
+  if (next.businessTrust < 30) {
+    next.gdpGrowthRate -= 0.01;
+  }
+  if (next.publicTrust < 30) {
+    next.approvalRating -= 5;
+  }
+  if (next.internationalTrust < 30) {
+    next.foreignRelationsIndex -= 5;
+  }
 
   // Budget, Reinvestment, and Debt
   const taxRate = Math.max(0.05, 0.20 - next.unemploymentRate * 0.002 - next.povertyRate * 0.001);
@@ -236,6 +283,26 @@ function simulateNaturalDrift(next: NationState): void {
   next.approvalRating = clamp(next.approvalRating);
 }
 
+export function getAvailableDecisions(state: NationState, pool: Decision[]): Decision[] {
+  if (state.activeSpawnedDecisionId) {
+    const spawned = pool.find(d => d.id === state.activeSpawnedDecisionId);
+    if (spawned) return [spawned];
+  }
+
+  return pool.filter(decision => {
+    // Check if already resolved as one-time
+    if (decision.oneTime && state.resolvedDecisionIds.includes(decision.id)) {
+      return false;
+    }
+    // Evaluate unlock condition
+    if (decision.unlockCondition) {
+      const val = evaluateExpression(state, decision.unlockCondition);
+      if (val <= 0) return false;
+    }
+    return true;
+  });
+}
+
 /**
  * Visibility and Timeline Convention:
  * A decision made on Turn N is applied during resolveTurn(N). 
@@ -244,11 +311,18 @@ function simulateNaturalDrift(next: NationState): void {
  * applying its stat changes, and THEN natural drift and random events will run.
  * The resulting stats are displayed to the player at the start of Turn N + D + 1.
  */
-export function resolveTurn(state: NationState, chosenOption?: DecisionOption): NationState {
-  const next: NationState = { ...state, pendingEffects: [...state.pendingEffects], recentLogs: [] };
+export function resolveTurn(state: NationState, chosenOption?: DecisionOption, decisionId?: string): NationState {
+  const next = { 
+    ...state, 
+    pendingEffects: [...state.pendingEffects], 
+    recentLogs: [] as string[], 
+    resolvedDecisionIds: [...state.resolvedDecisionIds],
+    eventFlags: { ...state.eventFlags },
+    activeEscalations: [...state.activeEscalations]
+  };
   
   if (chosenOption) {
-    applyDecision(next, chosenOption);
+    applyDecision(next, chosenOption, decisionId);
   }
 
   const remainingEffects: PendingEffect[] = [];
@@ -257,6 +331,9 @@ export function resolveTurn(state: NationState, chosenOption?: DecisionOption): 
       next.recentLogs.push(`Resolving pending effect: ${effect.description}`);
       for (const eff of effect.effects) {
         applyEffect(next, eff);
+      }
+      if (effect.spawnDecisionId) {
+        next.activeSpawnedDecisionId = effect.spawnDecisionId;
       }
     } else {
       remainingEffects.push(effect);
@@ -267,21 +344,54 @@ export function resolveTurn(state: NationState, chosenOption?: DecisionOption): 
   simulateNaturalDrift(next);
 
   const events = eventsData as RandomEvent[];
-  let eventTriggered = false;
   
+  // 1. Process Escalations
+  const remainingEscalations: typeof state.activeEscalations = [];
+  for (const esc of next.activeEscalations) {
+    if (esc.targetTurn === next.turn) {
+      const ev = events.find(e => e.id === esc.eventId);
+      if (ev) {
+        const conditionVal = evaluateExpression(next, ev.triggerCondition);
+        if (conditionVal > 0) {
+          next.recentLogs.push(`Escalation Triggered: ${ev.title} - ${ev.description}`);
+          for (const eff of ev.effects) applyEffect(next, eff);
+          if (ev.setFlag) next.eventFlags[ev.setFlag] = true;
+          if (ev.clearFlag) delete next.eventFlags[ev.clearFlag];
+          if (ev.escalatesTo && ev.escalateTurns) {
+            remainingEscalations.push({ eventId: ev.escalatesTo, targetTurn: next.turn + ev.escalateTurns });
+          }
+        }
+      }
+    } else {
+      remainingEscalations.push(esc);
+    }
+  }
+  next.activeEscalations = remainingEscalations;
+
+  // 2. Process Standard Random Events
+  let eventTriggered = false;
   for (const ev of events) {
     if (eventTriggered) break;
     
+    // Skip checking events that are part of an escalation chain manually if they have 0 base prob or just let them be evaluated? 
+    // The prompt says "When a random event ev triggers...". Normal random events shouldn't trigger escalations unless rolled.
     const conditionVal = evaluateExpression(next, ev.triggerCondition);
     if (conditionVal > 0) {
       const weight = evaluateExpression(next, ev.probabilityWeight);
-      const roll = seededRandom(0, 1);
-      if (roll < weight) {
-        next.recentLogs.push(`Random Event: ${ev.title} - ${ev.description}`);
-        for (const eff of ev.effects) {
-          applyEffect(next, eff);
+      if (weight > 0) { // Ensures we don't roll 0-probability events
+        const roll = seededRandom(0, 1);
+        if (roll < weight) {
+          next.recentLogs.push(`Random Event: ${ev.title} - ${ev.description}`);
+          for (const eff of ev.effects) {
+            applyEffect(next, eff);
+          }
+          if (ev.setFlag) next.eventFlags[ev.setFlag] = true;
+          if (ev.clearFlag) delete next.eventFlags[ev.clearFlag];
+          if (ev.escalatesTo && ev.escalateTurns) {
+            next.activeEscalations.push({ eventId: ev.escalatesTo, targetTurn: next.turn + ev.escalateTurns });
+          }
+          eventTriggered = true;
         }
-        eventTriggered = true;
       }
     }
   }
@@ -297,6 +407,10 @@ export function resolveTurn(state: NationState, chosenOption?: DecisionOption): 
   next.environmentIndex = clamp(next.environmentIndex);
   next.foreignRelationsIndex = clamp(next.foreignRelationsIndex);
   next.approvalRating = clamp(next.approvalRating);
+  next.militaryTrust = clamp(next.militaryTrust);
+  next.businessTrust = clamp(next.businessTrust);
+  next.publicTrust = clamp(next.publicTrust);
+  next.internationalTrust = clamp(next.internationalTrust);
 
   next.turn += 1;
   return checkGameEnd(next);
@@ -309,6 +423,20 @@ function checkGameEnd(state: NationState): NationState {
     state.gameOver = true;
     state.gameResult = 'lose';
     state.gameOverReason = 'Economic Collapse: National debt exceeded 200% of GDP.';
+    return state;
+  }
+
+  if (state.businessTrust < 15) {
+    state.gameOver = true;
+    state.gameResult = 'lose';
+    state.gameOverReason = 'Economic Collapse: Complete loss of business trust triggered capital flight, hyper-inflation, and national bankruptcy.';
+    return state;
+  }
+
+  if (state.militaryTrust < 20) {
+    state.gameOver = true;
+    state.gameResult = 'lose';
+    state.gameOverReason = 'Military Coup: Disgruntled generals revolted and overthrew your administration.';
     return state;
   }
 

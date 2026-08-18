@@ -1,4 +1,4 @@
-import { getInitialState, setSeed } from './simulation';
+import { getInitialState, setSeed, getAvailableDecisions, seededRandom } from './simulation';
 import { Decision } from './types';
 import decisionsData from './decisions.json';
 import { executeAutoplayStep } from './autoplay';
@@ -19,7 +19,9 @@ function runAutoplayTest() {
       break;
     }
 
-    const decision = decisions[state.turn % decisions.length];
+    const availableDecisions = getAvailableDecisions(state, decisions);
+    const randomIndex = Math.floor(seededRandom(0, availableDecisions.length));
+    const decision = availableDecisions.length > 0 ? availableDecisions[randomIndex] : undefined;
     
     // We execute the step
     const { nextState, chosenOption, warnings } = executeAutoplayStep(state, decision);
