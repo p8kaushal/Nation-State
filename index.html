@@ -28,6 +28,108 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .scenario-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .scenario-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+    }
+    .scenario-select {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      font-size: 14px;
+      font-weight: 500;
+      background: #ffffff;
+      color: #1e293b;
+      cursor: pointer;
+      outline: none;
+    }
+    .scenario-select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    }
+    .save-load-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ctrl-btn {
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .ctrl-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+    .btn-secondary {
+      background: #64748b;
+      color: #ffffff;
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: #475569;
+    }
+    .btn-success {
+      background: #16a34a;
+      color: #ffffff;
+      animation: pulse-glow 2s infinite;
+    }
+    .btn-success:hover:not(:disabled) {
+      background: #15803d;
+    }
+    .btn-danger {
+      background: #ef4444;
+      color: #ffffff;
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: #dc2626;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+      50% { box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.2); }
+    }
+    .turn-badge {
+      font-size: 16px;
+      font-weight: 700;
+      color: #2563eb;
+      padding: 4px 12px;
+      background: #eff6ff;
+      border-radius: 6px;
+      border: 1px solid #bfdbfe;
     }
     .card {
       background: #ffffff;
@@ -156,7 +258,7 @@
       padding: 30px;
       border-radius: 8px;
       text-align: center;
-      max-width: 500px;
+      max-width: 520px;
       width: 100%;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     }
@@ -177,6 +279,12 @@
       margin: 16px 0 24px;
       line-height: 1.5;
     }
+    .modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
     .restart-btn {
       padding: 12px 24px;
       font-size: 16px;
@@ -190,13 +298,96 @@
     .restart-btn:hover {
       background: #1d4ed8;
     }
+
+    /* History Table Styling */
+    .history-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #ebeef5;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+    .history-card-header h2 {
+      margin: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .history-table-container {
+      overflow-x: auto;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    .history-table th {
+      background: #f8fafc;
+      padding: 10px 14px;
+      font-weight: 600;
+      color: #475569;
+      border-bottom: 2px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    .history-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+      vertical-align: middle;
+    }
+    .history-table tr:hover td {
+      background: #f8fafc;
+    }
+    .result-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .result-badge.win {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .result-badge.lose {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .empty-history-msg {
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+      padding: 24px 0;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <header class="header">
-      <h1 style="margin: 0; font-size: 22px;">Nation State Simulator</h1>
-      <div id="turn-display" style="font-size: 18px; font-weight: 700; color: #2563eb;">Turn 1</div>
+      <div class="header-left">
+        <h1 style="margin: 0; font-size: 22px;">Nation State Simulator</h1>
+        <div class="scenario-control">
+          <label for="scenario-select" class="scenario-label">Scenario:</label>
+          <select id="scenario-select" class="scenario-select">
+            <option value="default">Default (Baseline)</option>
+            <option value="post_war">Post-War Reconstruction</option>
+            <option value="petrostate">Petrostate</option>
+            <option value="fragile_democracy">Fragile Democracy</option>
+          </select>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="save-load-group">
+          <button id="resume-btn" class="ctrl-btn btn-success" style="display: none;" title="Resume previous saved session">Resume Game</button>
+          <button id="save-btn" class="ctrl-btn btn-primary" title="Save game manually">Save Game</button>
+          <button id="load-btn" class="ctrl-btn btn-secondary" title="Load saved game">Load Game</button>
+          <button id="delete-save-btn" class="ctrl-btn btn-danger" title="Delete current save file">Delete Save</button>
+        </div>
+        <div id="turn-display" class="turn-badge">Turn 1</div>
+      </div>
     </header>
 
     <div class="card">
@@ -244,13 +435,41 @@
       <h2>Turn & Event Log</h2>
       <div id="log-panel" class="log-panel"></div>
     </div>
+
+    <div class="card full-width">
+      <div class="history-card-header">
+        <h2>Past Run History</h2>
+        <button id="clear-history-btn" class="ctrl-btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">Clear History</button>
+      </div>
+      <div class="history-table-container">
+        <table id="history-table" class="history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Scenario</th>
+              <th>Final Turn</th>
+              <th>Result</th>
+              <th>Outcome Reason</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body">
+          </tbody>
+        </table>
+        <div id="no-history-msg" class="empty-history-msg">
+          No completed runs recorded yet. Finish a simulation to view history.
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="game-over-overlay">
     <div class="game-over-modal">
       <h1 id="game-over-title" class="game-over-title">GAME OVER</h1>
       <p id="game-over-reason" class="game-over-reason"></p>
-      <button id="restart-btn" class="restart-btn">Restart Game</button>
+      <div class="modal-actions">
+        <button id="restart-btn" class="restart-btn">Restart Game</button>
+        <button id="modal-delete-save-btn" class="ctrl-btn btn-danger" style="padding: 12px 18px; font-size: 15px;">Delete Save & Restart</button>
+      </div>
     </div>
   </div>
 
