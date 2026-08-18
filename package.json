@@ -1,0 +1,21 @@
+{
+  "name": "nation_state",
+  "version": "1.0.0",
+  "description": "Nation State Simulation Game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "tsx src/run_game_test.ts",
+    "validate": "tsx src/validate_content.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1"
+  }
+}

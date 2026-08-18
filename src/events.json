@@ -1,0 +1,132 @@
+[
+  {
+    "id": "corruption_scandal",
+    "title": "Major Corruption Scandal Exposed",
+    "description": "Investigative journalists leak financial records implicating high-ranking officials in bribery and illicit offshore accounts.",
+    "triggerCondition": "corruptionLevel > 35",
+    "probabilityWeight": "(corruptionLevel - 30) * 0.015",
+    "effects": [
+      "approvalRating - 14",
+      "foreignRelationsIndex - 8",
+      "treasuryBudget - 500000000"
+    ]
+  },
+  {
+    "id": "economic_boom",
+    "title": "Global Trade Windfall & Boom",
+    "description": "Surging global demand for our exports triggers a wave of business investment and economic expansion.",
+    "triggerCondition": "gdpGrowthRate > 0.02",
+    "probabilityWeight": "gdpGrowthRate * 12",
+    "effects": [
+      "gdp + gdp * 0.04",
+      "approvalRating + 8",
+      "unemploymentRate - 1.2",
+      "treasuryBudget + 1500000000"
+    ]
+  },
+  {
+    "id": "debt_crisis_panic",
+    "title": "Sovereign Debt Panic",
+    "description": "International credit agencies downgrade the sovereign debt rating, sparking capital flight and higher borrowing spreads.",
+    "triggerCondition": "debtCrisis > 0",
+    "probabilityWeight": "0.45",
+    "effects": [
+      "gdpGrowthRate - 0.012",
+      "approvalRating - 12",
+      "foreignRelationsIndex - 8",
+      "nationalDebt + 2000000000"
+    ]
+  },
+  {
+    "id": "epidemic_outbreak",
+    "title": "Viral Epidemic Outbreak",
+    "description": "A virulent respiratory virus spreads rapidly through urban hubs, overwhelming municipal healthcare infrastructure.",
+    "triggerCondition": "healthcareIndex < 50",
+    "probabilityWeight": "(55 - healthcareIndex) * 0.012",
+    "effects": [
+      "healthcareIndex - 6",
+      "approvalRating - 8",
+      "gdpGrowthRate - 0.005",
+      "treasuryBudget - 1500000000",
+      "population - 35000"
+    ]
+  },
+  {
+    "id": "organized_crime_wave",
+    "title": "Gang Violence & Cartel Surge",
+    "description": "A sudden surge in organized crime syndicate activity destabilizes transportation corridors and commercial districts.",
+    "triggerCondition": "crimeRate > 42",
+    "probabilityWeight": "(crimeRate - 38) * 0.018",
+    "effects": [
+      "crimeRate + 6",
+      "approvalRating - 9",
+      "foreignRelationsIndex - 5",
+      "gdpGrowthRate - 0.003"
+    ]
+  },
+  {
+    "id": "civil_unrest_strikes",
+    "title": "Mass Civil Unrest & Strikes",
+    "description": "Public dissatisfaction over living conditions and economic hardship spills over into widespread street demonstrations.",
+    "triggerCondition": "approvalRating < 32",
+    "probabilityWeight": "(35 - approvalRating) * 0.02",
+    "effects": [
+      "approvalRating - 6",
+      "unemploymentRate + 0.8",
+      "crimeRate + 4",
+      "gdpGrowthRate - 0.004"
+    ]
+  },
+  {
+    "id": "ecological_disaster",
+    "title": "Industrial Toxic Spill & Disaster",
+    "description": "A catastrophic toxic spill at an industrial chemical complex pollutes major freshwater river systems.",
+    "triggerCondition": "environmentIndex < 45",
+    "probabilityWeight": "(50 - environmentIndex) * 0.015",
+    "effects": [
+      "environmentIndex - 10",
+      "healthcareIndex - 5",
+      "treasuryBudget - 2000000000",
+      "approvalRating - 7"
+    ]
+  },
+  {
+    "id": "diplomatic_breakthrough",
+    "title": "Historic Diplomatic Accord",
+    "description": "Successful international diplomacy produces a breakthrough treaty, boosting trade corridors and international reputation.",
+    "triggerCondition": "foreignRelationsIndex > 65",
+    "probabilityWeight": "(foreignRelationsIndex - 60) * 0.01",
+    "effects": [
+      "foreignRelationsIndex + 8",
+      "gdpGrowthRate + 0.004",
+      "approvalRating + 6",
+      "treasuryBudget + 800000000"
+    ]
+  },
+  {
+    "id": "tech_innovation_breakthrough",
+    "title": "Major Scientific Breakthrough",
+    "description": "Top national research universities develop proprietary breakthroughs in clean energy storage and quantum semiconductor fabrication.",
+    "triggerCondition": "educationIndex > 60",
+    "probabilityWeight": "(educationIndex - 55) * 0.01",
+    "effects": [
+      "educationIndex + 5",
+      "gdp + 3000000000",
+      "gdpGrowthRate + 0.005",
+      "approvalRating + 5"
+    ]
+  },
+  {
+    "id": "border_skirmish",
+    "title": "Border Skirmish & Tensions",
+    "description": "Hostile neighboring forces take advantage of perceived military weakness to provoke skirmishes along the disputed frontier.",
+    "triggerCondition": "militaryStrength < 35",
+    "probabilityWeight": "(40 - militaryStrength) * 0.015",
+    "effects": [
+      "militaryStrength - 4",
+      "foreignRelationsIndex - 7",
+      "approvalRating - 5",
+      "nationalDebt + 1000000000"
+    ]
+  }
+]
