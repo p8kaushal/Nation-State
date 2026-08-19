@@ -81,12 +81,47 @@ const clearHistoryBtn = document.getElementById('clear-history-btn') as HTMLButt
 const autoplayBtn = document.getElementById('autoplay-btn') as HTMLButtonElement;
 const autoplayDelaySelect = document.getElementById('autoplay-delay') as HTMLSelectElement;
 
+// Home Screen Elements
+const homeScreen = document.getElementById('home-screen') as HTMLElement;
+const homeMainView = document.getElementById('home-main-view') as HTMLElement;
+const homeScenarioView = document.getElementById('home-scenario-view') as HTMLElement;
+const homeNewGameBtn = document.getElementById('home-new-game-btn') as HTMLButtonElement;
+const homeContinueBtn = document.getElementById('home-continue-btn') as HTMLButtonElement;
+const homeContinueText = document.getElementById('home-continue-text') as HTMLElement;
+const homePastRunsBtn = document.getElementById('home-past-runs-btn') as HTMLButtonElement;
+const homeHowToPlayBtn = document.getElementById('home-how-to-play-btn') as HTMLButtonElement;
+const homeStartTourBtn = document.getElementById('home-start-tour-btn') as HTMLButtonElement | null;
+const homeBackBtn = document.getElementById('home-back-btn') as HTMLButtonElement;
+const homeStartPresidencyBtn = document.getElementById('home-start-presidency-btn') as HTMLButtonElement;
+const homeScenarioCards = document.querySelectorAll<HTMLElement>('.scenario-card');
+
+// How to Play Modal Elements
+const howToPlayModal = document.getElementById('how-to-play-modal') as HTMLElement;
+const howToPlayTourBtn = document.getElementById('how-to-play-tour-btn') as HTMLButtonElement | null;
+const closeHowToPlayBtn = document.getElementById('close-how-to-play-btn') as HTMLButtonElement;
+const closeHowToPlayFooterBtn = document.getElementById('close-how-to-play-footer-btn') as HTMLButtonElement;
+
+// Tutorial Overlay Elements
+const tutorialOverlay = document.getElementById('tutorial-overlay') as HTMLElement | null;
+const tutorialStepCounter = document.getElementById('tutorial-step-counter') as HTMLElement | null;
+const tutorialStepTitle = document.getElementById('tutorial-step-title') as HTMLElement | null;
+const tutorialStepDesc = document.getElementById('tutorial-step-desc') as HTMLElement | null;
+const tutorialStepTip = document.getElementById('tutorial-step-tip') as HTMLElement | null;
+const tutorialSkipBtn = document.getElementById('tutorial-skip-btn') as HTMLButtonElement | null;
+const tutorialPrevBtn = document.getElementById('tutorial-prev-btn') as HTMLButtonElement | null;
+const tutorialNextBtn = document.getElementById('tutorial-next-btn') as HTMLButtonElement | null;
+
+// In-game Top Bar Menu Button
+const menuHomeBtn = document.getElementById('menu-home-btn') as HTMLButtonElement | null;
+
 // Game Over Overlay elements
 const gameOverOverlay = document.getElementById('game-over-overlay') as HTMLElement;
 const gameOverTitle = document.getElementById('game-over-title') as HTMLElement;
 const gameOverReason = document.getElementById('game-over-reason') as HTMLElement;
 const restartBtn = document.getElementById('restart-btn') as HTMLButtonElement;
 const modalDeleteSaveBtn = document.getElementById('modal-delete-save-btn') as HTMLButtonElement;
+
+let selectedHomeScenario: ScenarioKey = 'default';
 
 const STAT_NAME_MAP: Record<string, string> = {
   approvalRating: 'Approval Rating',
@@ -1038,11 +1073,56 @@ function deleteSave() {
   updateSaveControls();
 }
 
+function updateHomeContinueButton() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) {
+    homeContinueBtn.disabled = true;
+    if (homeContinueText) homeContinueText.textContent = 'Continue Game (No Active Save)';
+    return;
+  }
+  try {
+    const saveData = JSON.parse(raw);
+    const sKey = (saveData.scenario as ScenarioKey) || 'default';
+    const sName = scenarioMetadata[sKey] ? scenarioMetadata[sKey].name : 'Golden Era';
+    const turn = saveData.state?.turn || 1;
+    homeContinueBtn.disabled = false;
+    if (homeContinueText) homeContinueText.textContent = `Continue Game (Turn ${turn} - ${sName})`;
+  } catch (e) {
+    homeContinueBtn.disabled = true;
+    if (homeContinueText) homeContinueText.textContent = 'Continue Game (Corrupted Save)';
+  }
+}
+
+function showHomeScreen() {
+  if (isAutoplayRunning) stopAutoplay();
+  homeScreen.style.display = 'flex';
+  homeMainView.style.display = 'flex';
+  homeScenarioView.style.display = 'none';
+  updateHomeContinueButton();
+  updateSaveControls();
+}
+
+function hideHomeScreen() {
+  homeScreen.style.display = 'none';
+}
+
+function selectHomeScenario(scenarioKey: ScenarioKey) {
+  selectedHomeScenario = scenarioKey;
+  homeScenarioCards.forEach((card) => {
+    if (card.getAttribute('data-scenario') === scenarioKey) {
+      card.classList.add('selected');
+    } else {
+      card.classList.remove('selected');
+    }
+  });
+}
+
 function updateSaveControls() {
   const hasSave = localStorage.getItem(SAVE_KEY) !== null;
   resumeBtn.style.display = hasSave ? 'inline-flex' : 'none';
   loadBtn.disabled = !hasSave;
   deleteSaveBtn.disabled = !hasSave;
+  updateHomeContinueButton();
 }
 
 function handleTurn(chosenOption?: DecisionOption, decisionId?: string) {
@@ -1187,9 +1267,221 @@ historyModal.addEventListener('click', (e) => {
   }
 });
 
+// How to Play Modal
+closeHowToPlayBtn.addEventListener('click', () => {
+  howToPlayModal.style.display = 'none';
+});
+
+closeHowToPlayFooterBtn.addEventListener('click', () => {
+  howToPlayModal.style.display = 'none';
+});
+
+howToPlayModal.addEventListener('click', (e) => {
+  if (e.target === howToPlayModal) {
+    howToPlayModal.style.display = 'none';
+  }
+});
+
+// Home Screen Event Listeners
+homeNewGameBtn.addEventListener('click', () => {
+  homeMainView.style.display = 'none';
+  homeScenarioView.style.display = 'flex';
+  selectHomeScenario(selectedHomeScenario);
+});
+
+homeBackBtn.addEventListener('click', () => {
+  homeScenarioView.style.display = 'none';
+  homeMainView.style.display = 'flex';
+});
+
+homeScenarioCards.forEach((card) => {
+  card.addEventListener('click', () => {
+    const key = card.getAttribute('data-scenario') as ScenarioKey;
+    if (key) {
+      selectHomeScenario(key);
+    }
+  });
+});
+
+homeStartPresidencyBtn.addEventListener('click', () => {
+  resetGameToScenario(selectedHomeScenario);
+  hideHomeScreen();
+});
+
+homeContinueBtn.addEventListener('click', () => {
+  if (loadGame()) {
+    hideHomeScreen();
+    turnLogsHistory.push('[Save/Load] Resumed saved game from Title Screen.');
+    renderLogs();
+  }
+});
+
+homePastRunsBtn.addEventListener('click', () => {
+  renderHistoryTable();
+  historyModal.style.display = 'flex';
+});
+
+homeHowToPlayBtn.addEventListener('click', () => {
+  howToPlayModal.style.display = 'flex';
+});
+
+// ========================================================
+// Tutorial / Executive Walkthrough Flow Controller
+// ========================================================
+interface TutorialStep {
+  title: string;
+  stepNumber: number;
+  totalSteps: number;
+  highlightSelectors: string[];
+  description: string;
+  tip?: string;
+}
+
+const TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    title: 'Executive Memorandum (Immediate & Delayed Effects)',
+    stepNumber: 1,
+    totalSteps: 3,
+    highlightSelectors: ['#decision-container'],
+    description:
+      'Each turn, an Executive Memorandum dispatch arrives on your desk presenting a national issue. Every directive lists immediate metric adjustments via color-coded badges, as well as delayed systemic consequences marked with clock tags (⏱️) that incubate across 1–3 future turns before taking effect.',
+    tip: '💡 Strategy: Always review the clock tags on options; delayed fallout often impacts treasury or public trust turns after enactment.',
+  },
+  {
+    title: 'Faction Trust Blocs & Coup Thresholds',
+    stepNumber: 2,
+    totalSteps: 3,
+    highlightSelectors: ['#trust-stats-list'],
+    description:
+      'Beyond headline economic indicators, your administration rests upon four critical faction pillars: Military, Business, Public, and International Trust. Faction confidence serves as a critical survival threshold—if any faction trust metric falls below 20%, existential crises (military coup d\'état, capital flight, general strikes, or sovereign sanctions) can trigger instantly regardless of GDP.',
+    tip: '⚠️ Warning: Neglecting any single faction to boost headline numbers can swiftly end your presidency in a coup.',
+  },
+  {
+    title: 'Dynamic Cabinet Dockets & Gated Crises',
+    stepNumber: 3,
+    totalSteps: 3,
+    highlightSelectors: ['.side-panel'],
+    description:
+      'Your cabinet docket is dynamic and reacts directly to national conditions. Gated cards (such as hyperinflation, debt defaults, and corruption scandals) unlock dynamically when national metrics cross critical danger zones. Resolving one-time crises permanently removes them from rotation, while standard policy memorandums recur as circumstances evolve.',
+    tip: '🏆 Mandate: Maintain solvency and coalition stability across 20 turns to establish an enduring legacy in the Past Runs archive.',
+  },
+];
+
+let currentTutorialStep = 0;
+let isTutorialActive = false;
+
+function clearSpotlightHighlights() {
+  document.querySelectorAll('.spotlight-highlight').forEach((el) => {
+    el.classList.remove('spotlight-highlight');
+  });
+}
+
+function showTutorialStep(stepIndex: number) {
+  if (stepIndex < 0 || stepIndex >= TUTORIAL_STEPS.length) {
+    endTutorial();
+    return;
+  }
+
+  currentTutorialStep = stepIndex;
+  const step = TUTORIAL_STEPS[stepIndex];
+
+  clearSpotlightHighlights();
+  step.highlightSelectors.forEach((sel) => {
+    document.querySelectorAll(sel).forEach((el) => {
+      el.classList.add('spotlight-highlight');
+    });
+  });
+
+  if (tutorialStepCounter) tutorialStepCounter.textContent = `Step ${step.stepNumber} of ${step.totalSteps}`;
+  if (tutorialStepTitle) tutorialStepTitle.textContent = step.title;
+  if (tutorialStepDesc) tutorialStepDesc.textContent = step.description;
+  if (tutorialStepTip) {
+    tutorialStepTip.textContent = step.tip || '';
+    tutorialStepTip.style.display = step.tip ? 'block' : 'none';
+  }
+
+  if (tutorialPrevBtn) {
+    tutorialPrevBtn.style.display = stepIndex > 0 ? 'inline-flex' : 'none';
+  }
+  if (tutorialNextBtn) {
+    tutorialNextBtn.textContent = stepIndex === step.totalSteps - 1 ? 'Finish Tour ✓' : 'Next →';
+  }
+
+  if (tutorialOverlay) {
+    tutorialOverlay.style.display = 'flex';
+  }
+}
+
+function startTutorial() {
+  hideHomeScreen();
+  if (howToPlayModal) howToPlayModal.style.display = 'none';
+  if (historyModal) historyModal.style.display = 'none';
+
+  isTutorialActive = true;
+  showTutorialStep(0);
+  turnLogsHistory.push('[Briefing] Executive tutorial handbook initiated.');
+  renderLogs();
+}
+
+function endTutorial() {
+  isTutorialActive = false;
+  currentTutorialStep = 0;
+  clearSpotlightHighlights();
+  if (tutorialOverlay) {
+    tutorialOverlay.style.display = 'none';
+  }
+}
+
+// Tutorial Tour Listeners
+if (homeStartTourBtn) {
+  homeStartTourBtn.addEventListener('click', () => {
+    startTutorial();
+  });
+}
+
+if (howToPlayTourBtn) {
+  howToPlayTourBtn.addEventListener('click', () => {
+    startTutorial();
+  });
+}
+
+if (tutorialSkipBtn) {
+  tutorialSkipBtn.addEventListener('click', () => {
+    endTutorial();
+  });
+}
+
+if (tutorialNextBtn) {
+  tutorialNextBtn.addEventListener('click', () => {
+    if (currentTutorialStep < TUTORIAL_STEPS.length - 1) {
+      showTutorialStep(currentTutorialStep + 1);
+    } else {
+      endTutorial();
+    }
+  });
+}
+
+if (tutorialPrevBtn) {
+  tutorialPrevBtn.addEventListener('click', () => {
+    if (currentTutorialStep > 0) {
+      showTutorialStep(currentTutorialStep - 1);
+    }
+  });
+}
+
+if (menuHomeBtn) {
+  menuHomeBtn.addEventListener('click', () => {
+    showHomeScreen();
+  });
+}
+
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    if (isTutorialActive) {
+      endTutorial();
+    }
     historyModal.style.display = 'none';
+    howToPlayModal.style.display = 'none';
     hideCausalTooltip();
   }
 });
@@ -1228,7 +1520,8 @@ restartBtn.addEventListener('click', () => {
 
 modalDeleteSaveBtn.addEventListener('click', () => {
   deleteSave();
-  resetGameToScenario(currentScenario);
+  gameOverOverlay.style.display = 'none';
+  showHomeScreen();
 });
 
 // Startup Initialization
@@ -1239,6 +1532,7 @@ if (officeBg) {
 
 updateSaveControls();
 renderHistoryTable();
+updateHomeContinueButton();
 
 turnLogsHistory.push(`=== Game Initialized (Scenario: ${scenarioMetadata[currentScenario].name}) ===`);
 render();

@@ -12,23 +12,23 @@ export interface ScenarioMeta {
 export const scenarioMetadata: Record<ScenarioKey, ScenarioMeta> = {
   default: {
     id: 'default',
-    name: 'Default (Baseline)',
-    description: 'Baseline scenario with balanced initial statistics and standard debt.',
+    name: 'Golden Era',
+    description: 'Balanced starting stats, stable debt.',
   },
   post_war: {
     id: 'post_war',
     name: 'Post-War Reconstruction',
-    description: 'A nation ravaged by conflict with degraded public services, low trust, and crushing debt (90% of GDP).',
+    description: 'Ravaged services, low trust, and crushing debt.',
   },
   petrostate: {
     id: 'petrostate',
     name: 'Petrostate',
-    description: 'Resource-rich economy with massive GDP ($150B) and deep cash reserves ($30B), burdened by high corruption and pollution.',
+    description: 'Resource-rich, massive GDP but high pollution and corruption.',
   },
   fragile_democracy: {
     id: 'fragile_democracy',
     name: 'Fragile Democracy',
-    description: 'A prosperous economy endangered by cynical public trust and restless military factions.',
+    description: 'Strong economy but volatile military/public trust.',
   },
 };
 
