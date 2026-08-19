@@ -448,7 +448,7 @@ function checkGameEnd(state: NationState): NationState {
   }
 
   if (state.turn === 10 || state.turn === 20 || state.turn === 30 || state.turn === 40) {
-    if (state.approvalRating < 45) {
+    if (state.approvalRating < 40) {
       state.gameOver = true;
       state.gameResult = 'lose';
       state.gameOverReason = 'Election Defeat: The populace voted you out of office.';
