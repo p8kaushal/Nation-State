@@ -21,7 +21,7 @@ function calculateImpact(prevState: any, nextState: any) {
 
 function runScenarios() {
   const scenariosToRun: ScenarioKey[] = ['default', 'post_war', 'petrostate', 'fragile_democracy'];
-  const runsPerScenario = 100;
+  const runsPerScenario = 500;
   const decisions = decisionsData as Decision[];
   
   let csvData = `Scenario,Option ID,Decision ID,Times Selected,Win Rate (%),Avg Impact,Avg Delta Approval,Avg Delta GDP (%)\n`;

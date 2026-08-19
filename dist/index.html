@@ -633,13 +633,186 @@
       display: block;
     }
 
+    /* ========================================================
+       Nation View Board (2D Visual Telemetry HUD)
+       ======================================================== */
+    .nation-view-container {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 92%;
+      max-width: 450px;
+      z-index: 10;
+      pointer-events: auto;
+    }
+
+    .status-board-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 5px;
+      background: rgba(11, 27, 61, 0.88);
+      backdrop-filter: blur(8px);
+      padding: 5px 7px;
+      border-radius: 6px;
+      border: 1px solid rgba(203, 213, 225, 0.25);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .status-tile {
+      background: #FAF8F5;
+      border: 1px solid var(--bureaucracy-grey);
+      border-radius: 4px;
+      padding: 3px 4px 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1px;
+      transition: all 0.2s ease;
+      min-width: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      cursor: default;
+    }
+
+    .status-tile-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0 1px;
+    }
+
+    .status-tile-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .status-tile-icon .sector-svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .status-tile-score {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .status-tile-label {
+      font-family: var(--font-sans);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: var(--federal-navy);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      text-align: center;
+    }
+
+    .status-tile-bar {
+      width: 100%;
+      height: 2px;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+
+    .status-tile-progress {
+      height: 100%;
+      border-radius: 1px;
+      transition: width 0.3s ease;
+    }
+
+    /* Healthy State (>= 70) */
+    .status-tile.state-healthy {
+      border-color: rgba(28, 75, 70, 0.35);
+      background: #F0FDF4;
+    }
+    .status-tile.state-healthy .status-tile-icon {
+      color: #166534;
+    }
+    .status-tile.state-healthy .status-tile-score {
+      color: #166534;
+    }
+    .status-tile.state-healthy .status-tile-progress {
+      background: #16A34A;
+    }
+    .status-tile.state-healthy:hover {
+      box-shadow: 0 0 8px rgba(22, 163, 74, 0.3);
+      border-color: #16A34A;
+    }
+
+    /* Neutral State (35 - 70) */
+    .status-tile.state-neutral {
+      border-color: rgba(217, 119, 6, 0.3);
+      background: #FFFBEB;
+    }
+    .status-tile.state-neutral .status-tile-icon {
+      color: #B45309;
+    }
+    .status-tile.state-neutral .status-tile-score {
+      color: #B45309;
+    }
+    .status-tile.state-neutral .status-tile-progress {
+      background: #F59E0B;
+    }
+    .status-tile.state-neutral:hover {
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+      border-color: #F59E0B;
+    }
+
+    /* Critical State (< 35) */
+    .status-tile.state-critical {
+      border-color: rgba(220, 38, 38, 0.6);
+      background: #FEF2F2;
+    }
+    .status-tile.state-critical .status-tile-icon {
+      color: #B91C1C;
+    }
+    .status-tile.state-critical .status-tile-score {
+      color: #B91C1C;
+    }
+    .status-tile.state-critical .status-tile-progress {
+      background: #EF4444;
+    }
+
+    /* Flashing critical warning animation */
+    @keyframes pulse-critical-warning {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6), inset 0 0 3px rgba(220, 38, 38, 0.2);
+        border-color: #DC2626;
+      }
+      50% {
+        box-shadow: 0 0 8px 2px rgba(220, 38, 38, 0.7), inset 0 0 6px rgba(220, 38, 38, 0.35);
+        border-color: #991B1B;
+        background: #FEE2E2;
+      }
+    }
+
+    .flash-critical, .status-tile.flash-critical {
+      animation: pulse-critical-warning 1.4s ease-in-out infinite;
+    }
+
     /* Executive Memorandum Card Sheet */
     .memo-container {
       position: relative;
       z-index: 2;
       width: 92%;
+<<<<<<< Updated upstream
       max-width: 480px;
       max-height: calc(100% - 75px);
+=======
+      max-width: 450px;
+      max-height: calc(100% - 66px);
+      margin-top: 50px;
+>>>>>>> Stashed changes
       overflow-y: auto;
       background-color: #FAF8F5; /* Parchment Paper */
       color: #1E2022;
@@ -2392,7 +2565,11 @@
       }
     }
   </style>
+<<<<<<< Updated upstream
   <script type="module" crossorigin src="/assets/index-DkAK0bKs.js"></script>
+=======
+  <script type="module" crossorigin src="/assets/index-C9XmGuH_.js"></script>
+>>>>>>> Stashed changes
 </head>
 <body>
   <!-- Cabinet Chamber Home Screen Overlay -->

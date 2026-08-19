@@ -1,0 +1,334 @@
+
+======================================================
+SCENARIO: DEFAULT (500 RUNS)
+======================================================
+Wins: 287 (57.4%)
+Loss - Election Defeat: 193 (38.6%)
+Loss - Faction Coup/Capital Flight: 15 (3.0%)
+Loss - Coup: 5 (1.0%)
+
+Average Turns Survived: 16.5
+
+Average Stats at Moment of Loss:
+  Avg Final GDP: $58.40B
+  Avg Final Debt: $12.26B
+  Avg Final Approval: 31.6
+  Avg Final Poverty: 18.5%
+  Avg Final Unemp: 8.2%
+
+--- OPTION ANALYSIS (default) ---
+tax_cut_pass (Selected 116x) - WinRate: 75.8% | AvgImpact: 18793103543.63
+tax_cut_compromise (Selected 136x) - WinRate: 74.6% | AvgImpact: 14367621584.78
+tax_cut_reject (Selected 126x) - WinRate: 62.9% | AvgImpact: 22857142958.06
+healthcare_pass_full (Selected 116x) - WinRate: 85.1% | AvgImpact: 14164772547.76
+healthcare_compromise (Selected 140x) - WinRate: 66.4% | AvgImpact: 12857142925.14
+healthcare_reject (Selected 102x) - WinRate: 70.0% | AvgImpact: 21078431456.88
+edu_fund_full (Selected 127x) - WinRate: 74.3% | AvgImpact: 14173228448.76
+edu_fund_vocational (Selected 125x) - WinRate: 75.5% | AvgImpact: 12640000079.13
+edu_ignore (Selected 123x) - WinRate: 71.6% | AvgImpact: 6747967549.96
+carbon_tax_pass (Selected 116x) - WinRate: 76.7% | AvgImpact: 65803002177.65
+carbon_subsidies_compromise (Selected 132x) - WinRate: 77.8% | AvgImpact: 15763590726.59
+carbon_tax_reject (Selected 142x) - WinRate: 73.0% | AvgImpact: 11619718370.60
+mil_expand_full (Selected 136x) - WinRate: 68.6% | AvgImpact: 8823529544.12
+mil_expand_moderate (Selected 116x) - WinRate: 79.0% | AvgImpact: 10344827676.29
+mil_deny (Selected 126x) - WinRate: 71.8% | AvgImpact: 18253968346.62
+anti_corr_pass (Selected 129x) - WinRate: 89.0% | AvgImpact: 11627907058.13
+anti_corr_internal (Selected 138x) - WinRate: 73.3% | AvgImpact: 11446424377.43
+anti_corr_block (Selected 110x) - WinRate: 57.7% | AvgImpact: 7977178043.45
+trade_pact_sign (Selected 104x) - WinRate: 84.9% | AvgImpact: 16730769313.69
+trade_pact_bilateral (Selected 126x) - WinRate: 78.6% | AvgImpact: 7142857226.15
+trade_pact_reject (Selected 144x) - WinRate: 63.6% | AvgImpact: 6791190040.74
+labor_pass_full (Selected 115x) - WinRate: 76.0% | AvgImpact: 14347826151.28
+labor_compromise (Selected 135x) - WinRate: 68.3% | AvgImpact: 12814814883.57
+labor_crackdown (Selected 133x) - WinRate: 53.8% | AvgImpact: 12406015115.96
+police_tough_crime (Selected 122x) - WinRate: 73.6% | AvgImpact: 7212087110.84
+police_community (Selected 127x) - WinRate: 84.3% | AvgImpact: 7086614256.17
+police_status_quo (Selected 106x) - WinRate: 71.1% | AvgImpact: 8530746074.47
+ubi_pass_nationwide (Selected 114x) - WinRate: 75.5% | AvgImpact: 9837629804.10
+ubi_targeted_pilot (Selected 117x) - WinRate: 69.1% | AvgImpact: 8974359057.13
+ubi_reject (Selected 131x) - WinRate: 71.7% | AvgImpact: 10623490745.82
+infra_fund_public (Selected 121x) - WinRate: 73.8% | AvgImpact: 8070704975.99
+infra_public_private (Selected 139x) - WinRate: 71.4% | AvgImpact: 7553956912.91
+infra_defer (Selected 115x) - WinRate: 74.0% | AvgImpact: 6521739199.65
+austerity_pass_deep (Selected 114x) - WinRate: 63.5% | AvgImpact: 6578947470.47
+austerity_streamline (Selected 119x) - WinRate: 81.6% | AvgImpact: 18283396000.33
+austerity_stimulus (Selected 130x) - WinRate: 67.5% | AvgImpact: 4076923153.85
+nuclear_build_full (Selected 115x) - WinRate: 66.0% | AvgImpact: 7826087062.47
+nuclear_renewable_focus (Selected 141x) - WinRate: 69.1% | AvgImpact: 8169803730.90
+nuclear_fossil_fuel (Selected 123x) - WinRate: 63.1% | AvgImpact: 6097561066.88
+immigration_expand_skilled (Selected 130x) - WinRate: 81.7% | AvgImpact: 10446556160.95
+immigration_guest_worker (Selected 117x) - WinRate: 71.3% | AvgImpact: 27179487273.39
+immigration_restrict (Selected 122x) - WinRate: 67.0% | AvgImpact: 7377049254.64
+tech_full_dereg (Selected 111x) - WinRate: 73.7% | AvgImpact: 8108108188.28
+tech_regulated_hub (Selected 115x) - WinRate: 77.9% | AvgImpact: 5913043552.64
+tech_reject (Selected 99x) - WinRate: 82.2% | AvgImpact: 7575757637.93
+foreign_aid_full (Selected 144x) - WinRate: 89.3% | AvgImpact: 14583333424.02
+foreign_aid_financial (Selected 110x) - WinRate: 76.8% | AvgImpact: 18403332065.82
+foreign_aid_abstain (Selected 123x) - WinRate: 71.7% | AvgImpact: 13727450051.53
+prison_rehab_pass (Selected 126x) - WinRate: 77.1% | AvgImpact: 9523809594.54
+prison_privatize (Selected 134x) - WinRate: 64.0% | AvgImpact: 24416188665.72
+prison_mandatory_minimums (Selected 116x) - WinRate: 70.5% | AvgImpact: 9741379382.17
+water_desal_grid (Selected 142x) - WinRate: 78.7% | AvgImpact: 11619718410.16
+water_ration_import (Selected 135x) - WinRate: 74.5% | AvgImpact: 14015479559.55
+water_deregulate (Selected 103x) - WinRate: 71.4% | AvgImpact: 10194174836.40
+cyber_shield_surveillance (Selected 123x) - WinRate: 60.0% | AvgImpact: 9756097649.98
+cyber_defense_only (Selected 119x) - WinRate: 75.0% | AvgImpact: 6302521086.81
+cyber_privacy_bill (Selected 119x) - WinRate: 75.0% | AvgImpact: 17773318136.04
+wealth_tax_pass_full (Selected 118x) - WinRate: 76.7% | AvgImpact: 124576271411.54
+wealth_tax_loophole_only (Selected 128x) - WinRate: 77.0% | AvgImpact: 48671875092.46
+wealth_tax_reject (Selected 123x) - WinRate: 74.5% | AvgImpact: 13499898134.76
+scandal_investigate_full (Selected 121x) - WinRate: 71.1% | AvgImpact: 14819980215.55
+scandal_ignore (Selected 133x) - WinRate: 60.2% | AvgImpact: 9624060215.28
+scandal_publish (Selected 44x) - WinRate: 86.4% | AvgImpact: 17045454643.91
+scandal_bury (Selected 56x) - WinRate: 64.3% | AvgImpact: 15178571527.57
+
+======================================================
+SCENARIO: POST_WAR (500 RUNS)
+======================================================
+Wins: 12 (2.4%)
+*** DEAD MAN WALKING: This scenario is extremely difficult under random play (<5% win rate) ***
+Loss - Faction Coup/Capital Flight: 31 (6.2%)
+Loss - Election Defeat: 452 (90.4%)
+Loss - Coup: 5 (1.0%)
+
+Average Turns Survived: 10.2
+
+Average Stats at Moment of Loss:
+  Avg Final GDP: $53.07B
+  Avg Final Debt: $14.88B
+  Avg Final Approval: 19.9
+  Avg Final Poverty: 29.0%
+  Avg Final Unemp: 12.9%
+
+--- OPTION ANALYSIS (post_war) ---
+tax_cut_pass (Selected 58x) - WinRate: 5.5% | AvgImpact: 18103448401.54
+tax_cut_compromise (Selected 68x) - WinRate: 3.3% | AvgImpact: 22058823605.22
+tax_cut_reject (Selected 81x) - WinRate: 7.8% | AvgImpact: 15432098856.57
+healthcare_pass_full (Selected 68x) - WinRate: 3.0% | AvgImpact: 24264705978.87
+healthcare_compromise (Selected 71x) - WinRate: 0.0% | AvgImpact: 21126760648.40
+healthcare_reject (Selected 80x) - WinRate: 4.1% | AvgImpact: 19375000070.67
+edu_fund_full (Selected 59x) - WinRate: 1.8% | AvgImpact: 20338983148.40
+edu_fund_vocational (Selected 70x) - WinRate: 3.2% | AvgImpact: 17142857234.03
+edu_ignore (Selected 83x) - WinRate: 2.5% | AvgImpact: 13614457885.28
+carbon_tax_pass (Selected 62x) - WinRate: 8.6% | AvgImpact: 41935483957.15
+carbon_subsidies_compromise (Selected 86x) - WinRate: 9.0% | AvgImpact: 16860465224.26
+carbon_tax_reject (Selected 73x) - WinRate: 3.0% | AvgImpact: 16438356238.75
+mil_expand_full (Selected 82x) - WinRate: 5.3% | AvgImpact: 9146341616.73
+mil_expand_moderate (Selected 71x) - WinRate: 6.0% | AvgImpact: 10563380374.97
+mil_deny (Selected 79x) - WinRate: 2.7% | AvgImpact: 22419681713.16
+anti_corr_pass (Selected 79x) - WinRate: 12.7% | AvgImpact: 16202531751.38
+anti_corr_internal (Selected 66x) - WinRate: 0.0% | AvgImpact: 15909090986.42
+anti_corr_block (Selected 90x) - WinRate: 4.7% | AvgImpact: 12222222306.57
+trade_pact_sign (Selected 79x) - WinRate: 8.7% | AvgImpact: 13291139326.72
+trade_pact_bilateral (Selected 83x) - WinRate: 5.1% | AvgImpact: 16265060301.12
+trade_pact_reject (Selected 68x) - WinRate: 0.0% | AvgImpact: 11029411850.87
+labor_pass_full (Selected 79x) - WinRate: 8.6% | AvgImpact: 15189873504.47
+labor_compromise (Selected 79x) - WinRate: 8.0% | AvgImpact: 17088607679.62
+labor_crackdown (Selected 71x) - WinRate: 2.9% | AvgImpact: 15492957834.43
+police_tough_crime (Selected 77x) - WinRate: 4.3% | AvgImpact: 5844155932.63
+police_community (Selected 67x) - WinRate: 4.7% | AvgImpact: 15671641882.54
+police_status_quo (Selected 74x) - WinRate: 2.9% | AvgImpact: 26351351425.85
+ubi_pass_nationwide (Selected 78x) - WinRate: 5.5% | AvgImpact: 13461538583.99
+ubi_targeted_pilot (Selected 72x) - WinRate: 6.0% | AvgImpact: 14583333424.05
+ubi_reject (Selected 59x) - WinRate: 1.9% | AvgImpact: 15254237349.08
+infra_fund_public (Selected 65x) - WinRate: 5.3% | AvgImpact: 13846153961.50
+infra_public_private (Selected 68x) - WinRate: 3.2% | AvgImpact: 13235294222.37
+infra_defer (Selected 79x) - WinRate: 2.8% | AvgImpact: 28481012725.30
+austerity_pass_deep (Selected 85x) - WinRate: 6.4% | AvgImpact: 15882353023.48
+austerity_streamline (Selected 73x) - WinRate: 5.9% | AvgImpact: 10273972692.84
+austerity_stimulus (Selected 82x) - WinRate: 5.2% | AvgImpact: 27439024496.40
+nuclear_build_full (Selected 77x) - WinRate: 2.8% | AvgImpact: 25324675433.57
+nuclear_renewable_focus (Selected 69x) - WinRate: 1.5% | AvgImpact: 10869565343.95
+nuclear_fossil_fuel (Selected 72x) - WinRate: 4.3% | AvgImpact: 11111111194.24
+immigration_expand_skilled (Selected 57x) - WinRate: 7.5% | AvgImpact: 15789473764.62
+immigration_guest_worker (Selected 65x) - WinRate: 5.3% | AvgImpact: 19230769306.04
+immigration_restrict (Selected 78x) - WinRate: 4.1% | AvgImpact: 11538461636.18
+tech_full_dereg (Selected 77x) - WinRate: 4.5% | AvgImpact: 15584415667.04
+tech_regulated_hub (Selected 94x) - WinRate: 7.3% | AvgImpact: 11170212859.29
+tech_reject (Selected 60x) - WinRate: 1.8% | AvgImpact: 17500000064.64
+foreign_aid_full (Selected 64x) - WinRate: 12.3% | AvgImpact: 18750000115.41
+foreign_aid_financial (Selected 60x) - WinRate: 8.6% | AvgImpact: 2500000073.70
+foreign_aid_abstain (Selected 63x) - WinRate: 3.3% | AvgImpact: 4761904848.99
+prison_rehab_pass (Selected 57x) - WinRate: 5.4% | AvgImpact: 10526315883.72
+prison_privatize (Selected 73x) - WinRate: 2.9% | AvgImpact: 22328767200.05
+prison_mandatory_minimums (Selected 71x) - WinRate: 7.4% | AvgImpact: 19014084577.73
+water_desal_grid (Selected 93x) - WinRate: 3.5% | AvgImpact: 17741935579.95
+water_ration_import (Selected 73x) - WinRate: 5.9% | AvgImpact: 14383561717.22
+water_deregulate (Selected 72x) - WinRate: 2.9% | AvgImpact: 22916666729.94
+cyber_shield_surveillance (Selected 70x) - WinRate: 1.5% | AvgImpact: 10714285825.74
+cyber_defense_only (Selected 77x) - WinRate: 6.7% | AvgImpact: 15584415679.89
+cyber_privacy_bill (Selected 66x) - WinRate: 4.8% | AvgImpact: 9090909157.73
+wealth_tax_pass_full (Selected 79x) - WinRate: 4.2% | AvgImpact: 131012658422.14
+wealth_tax_loophole_only (Selected 78x) - WinRate: 5.3% | AvgImpact: 25000000084.48
+wealth_tax_reject (Selected 70x) - WinRate: 4.4% | AvgImpact: 19285714357.81
+scandal_investigate_full (Selected 91x) - WinRate: 5.5% | AvgImpact: 14835164919.89
+scandal_ignore (Selected 84x) - WinRate: 2.4% | AvgImpact: 13095238159.55
+scandal_publish (Selected 26x) - WinRate: 11.5% | AvgImpact: 11538461643.54
+scandal_bury (Selected 42x) - WinRate: 4.8% | AvgImpact: 14285714372.34
+
+======================================================
+SCENARIO: PETROSTATE (500 RUNS)
+======================================================
+Wins: 0 (0.0%)
+*** DEAD MAN WALKING: This scenario is extremely difficult under random play (<5% win rate) ***
+Loss - Coup: 500 (100.0%)
+
+Average Turns Survived: 2.0
+
+Average Stats at Moment of Loss:
+  Avg Final GDP: $147.64B
+  Avg Final Debt: $20.86B
+  Avg Final Approval: 5.4
+  Avg Final Poverty: 18.6%
+  Avg Final Unemp: 7.5%
+
+--- OPTION ANALYSIS (petrostate) ---
+tax_cut_pass (Selected 6x) - WinRate: 0.0% | AvgImpact: 108.88
+tax_cut_compromise (Selected 11x) - WinRate: 0.0% | AvgImpact: 81.18
+tax_cut_reject (Selected 5x) - WinRate: 0.0% | AvgImpact: 91.62
+healthcare_pass_full (Selected 7x) - WinRate: 0.0% | AvgImpact: 98.71
+healthcare_compromise (Selected 8x) - WinRate: 0.0% | AvgImpact: 86.77
+healthcare_reject (Selected 7x) - WinRate: 0.0% | AvgImpact: 83.07
+edu_fund_full (Selected 5x) - WinRate: 0.0% | AvgImpact: 108.19
+edu_fund_vocational (Selected 10x) - WinRate: 0.0% | AvgImpact: 90.20
+edu_ignore (Selected 7x) - WinRate: 0.0% | AvgImpact: 82.27
+carbon_tax_pass (Selected 9x) - WinRate: 0.0% | AvgImpact: 85.30
+carbon_subsidies_compromise (Selected 3x) - WinRate: 0.0% | AvgImpact: 97.50
+carbon_tax_reject (Selected 9x) - WinRate: 0.0% | AvgImpact: 85.08
+mil_expand_full (Selected 7x) - WinRate: 0.0% | AvgImpact: 121.44
+mil_expand_moderate (Selected 12x) - WinRate: 0.0% | AvgImpact: 105.25
+mil_deny (Selected 4x) - WinRate: 0.0% | AvgImpact: 97.67
+anti_corr_pass (Selected 5x) - WinRate: 0.0% | AvgImpact: 96.08
+anti_corr_internal (Selected 9x) - WinRate: 0.0% | AvgImpact: 87.83
+anti_corr_block (Selected 15x) - WinRate: 0.0% | AvgImpact: 96.18
+trade_pact_sign (Selected 14x) - WinRate: 0.0% | AvgImpact: 80.56
+trade_pact_bilateral (Selected 10x) - WinRate: 0.0% | AvgImpact: 81.76
+trade_pact_reject (Selected 5x) - WinRate: 0.0% | AvgImpact: 97.26
+labor_pass_full (Selected 8x) - WinRate: 0.0% | AvgImpact: 89.46
+labor_compromise (Selected 11x) - WinRate: 0.0% | AvgImpact: 83.90
+labor_crackdown (Selected 9x) - WinRate: 0.0% | AvgImpact: 90.34
+police_tough_crime (Selected 10x) - WinRate: 0.0% | AvgImpact: 94.02
+police_community (Selected 8x) - WinRate: 0.0% | AvgImpact: 91.52
+police_status_quo (Selected 12x) - WinRate: 0.0% | AvgImpact: 84.58
+ubi_pass_nationwide (Selected 9x) - WinRate: 0.0% | AvgImpact: 105.98
+ubi_targeted_pilot (Selected 8x) - WinRate: 0.0% | AvgImpact: 91.51
+ubi_reject (Selected 12x) - WinRate: 0.0% | AvgImpact: 85.41
+infra_fund_public (Selected 9x) - WinRate: 0.0% | AvgImpact: 104.67
+infra_public_private (Selected 6x) - WinRate: 0.0% | AvgImpact: 92.13
+infra_defer (Selected 14x) - WinRate: 0.0% | AvgImpact: 85.58
+austerity_pass_deep (Selected 4x) - WinRate: 0.0% | AvgImpact: 98.78
+austerity_streamline (Selected 6x) - WinRate: 0.0% | AvgImpact: 88.88
+austerity_stimulus (Selected 11x) - WinRate: 0.0% | AvgImpact: 97.26
+nuclear_build_full (Selected 5x) - WinRate: 0.0% | AvgImpact: 101.72
+nuclear_renewable_focus (Selected 9x) - WinRate: 0.0% | AvgImpact: 93.68
+nuclear_fossil_fuel (Selected 8x) - WinRate: 0.0% | AvgImpact: 96.58
+immigration_expand_skilled (Selected 6x) - WinRate: 0.0% | AvgImpact: 80.44
+immigration_guest_worker (Selected 8x) - WinRate: 0.0% | AvgImpact: 84.56
+immigration_restrict (Selected 8x) - WinRate: 0.0% | AvgImpact: 91.11
+tech_full_dereg (Selected 8x) - WinRate: 0.0% | AvgImpact: 87.87
+tech_regulated_hub (Selected 9x) - WinRate: 0.0% | AvgImpact: 85.46
+tech_reject (Selected 5x) - WinRate: 0.0% | AvgImpact: 82.49
+foreign_aid_full (Selected 8x) - WinRate: 0.0% | AvgImpact: 92.68
+foreign_aid_financial (Selected 7x) - WinRate: 0.0% | AvgImpact: 79.83
+foreign_aid_abstain (Selected 6x) - WinRate: 0.0% | AvgImpact: 91.34
+prison_rehab_pass (Selected 11x) - WinRate: 0.0% | AvgImpact: 87.82
+prison_privatize (Selected 3x) - WinRate: 0.0% | AvgImpact: 91.01
+prison_mandatory_minimums (Selected 8x) - WinRate: 0.0% | AvgImpact: 89.83
+water_desal_grid (Selected 10x) - WinRate: 0.0% | AvgImpact: 94.49
+water_ration_import (Selected 2x) - WinRate: 0.0% | AvgImpact: 81.72
+water_deregulate (Selected 10x) - WinRate: 0.0% | AvgImpact: 83.13
+cyber_shield_surveillance (Selected 6x) - WinRate: 0.0% | AvgImpact: 100.90
+cyber_defense_only (Selected 11x) - WinRate: 0.0% | AvgImpact: 89.87
+cyber_privacy_bill (Selected 5x) - WinRate: 0.0% | AvgImpact: 83.82
+wealth_tax_pass_full (Selected 7x) - WinRate: 0.0% | AvgImpact: 96.40
+wealth_tax_loophole_only (Selected 6x) - WinRate: 0.0% | AvgImpact: 86.86
+wealth_tax_reject (Selected 8x) - WinRate: 0.0% | AvgImpact: 81.77
+scandal_investigate_full (Selected 12x) - WinRate: 0.0% | AvgImpact: 84.53
+scandal_ignore (Selected 9x) - WinRate: 0.0% | AvgImpact: 88.55
+scandal_publish (Selected 0x) - WinRate: 0.0% | AvgImpact: 0.00
+scandal_bury (Selected 0x) - WinRate: 0.0% | AvgImpact: 0.00
+
+======================================================
+SCENARIO: FRAGILE_DEMOCRACY (500 RUNS)
+======================================================
+Wins: 402 (80.4%)
+Loss - Coup: 80 (16.0%)
+Loss - Election Defeat: 17 (3.4%)
+Loss - Faction Coup/Capital Flight: 1 (0.2%)
+
+Average Turns Survived: 18.6
+
+Average Stats at Moment of Loss:
+  Avg Final GDP: $113.92B
+  Avg Final Debt: $6.32B
+  Avg Final Approval: 52.8
+  Avg Final Poverty: 4.3%
+  Avg Final Unemp: 2.4%
+
+--- OPTION ANALYSIS (fragile_democracy) ---
+tax_cut_pass (Selected 121x) - WinRate: 89.3% | AvgImpact: 5316944552.08
+tax_cut_compromise (Selected 115x) - WinRate: 94.1% | AvgImpact: 1364831739.65
+tax_cut_reject (Selected 126x) - WinRate: 90.8% | AvgImpact: 793650876.14
+healthcare_pass_full (Selected 123x) - WinRate: 94.6% | AvgImpact: 1219512256.94
+healthcare_compromise (Selected 119x) - WinRate: 91.5% | AvgImpact: 1527839377.08
+healthcare_reject (Selected 157x) - WinRate: 90.8% | AvgImpact: 4907372191.36
+edu_fund_full (Selected 128x) - WinRate: 91.2% | AvgImpact: 3284929141.26
+edu_fund_vocational (Selected 156x) - WinRate: 92.2% | AvgImpact: 961538519.40
+edu_ignore (Selected 147x) - WinRate: 90.2% | AvgImpact: 2934762442.54
+carbon_tax_pass (Selected 137x) - WinRate: 91.1% | AvgImpact: 4231241296.30
+carbon_subsidies_compromise (Selected 157x) - WinRate: 89.8% | AvgImpact: 56.86
+carbon_tax_reject (Selected 136x) - WinRate: 98.3% | AvgImpact: 3122015498.55
+mil_expand_full (Selected 138x) - WinRate: 96.8% | AvgImpact: 1438229095.67
+mil_expand_moderate (Selected 150x) - WinRate: 95.6% | AvgImpact: 1333333401.53
+mil_deny (Selected 155x) - WinRate: 46.3% | AvgImpact: 2871979634.43 [FLAG: Highly Suboptimal Option]
+anti_corr_pass (Selected 134x) - WinRate: 94.0% | AvgImpact: 67.15
+anti_corr_internal (Selected 153x) - WinRate: 94.5% | AvgImpact: 1960784381.82
+anti_corr_block (Selected 125x) - WinRate: 82.2% | AvgImpact: 67.61
+trade_pact_sign (Selected 148x) - WinRate: 94.9% | AvgImpact: 6610193965.65
+trade_pact_bilateral (Selected 145x) - WinRate: 92.1% | AvgImpact: 2068965577.63
+trade_pact_reject (Selected 152x) - WinRate: 91.9% | AvgImpact: 573333555.32
+labor_pass_full (Selected 139x) - WinRate: 92.2% | AvgImpact: 1079136750.15
+labor_compromise (Selected 136x) - WinRate: 91.9% | AvgImpact: 1102941230.13
+labor_crackdown (Selected 142x) - WinRate: 91.9% | AvgImpact: 3028169078.93
+police_tough_crime (Selected 150x) - WinRate: 92.1% | AvgImpact: 65.79
+police_community (Selected 149x) - WinRate: 93.1% | AvgImpact: 62.35
+police_status_quo (Selected 152x) - WinRate: 91.5% | AvgImpact: 3622137505.63
+ubi_pass_nationwide (Selected 144x) - WinRate: 92.0% | AvgImpact: 3517928430.26
+ubi_targeted_pilot (Selected 134x) - WinRate: 92.2% | AvgImpact: 373134389.19
+ubi_reject (Selected 127x) - WinRate: 89.2% | AvgImpact: 4445037391.74
+infra_fund_public (Selected 140x) - WinRate: 91.3% | AvgImpact: 3781875198.06
+infra_public_private (Selected 159x) - WinRate: 89.1% | AvgImpact: 1501615409.27
+infra_defer (Selected 154x) - WinRate: 84.8% | AvgImpact: 3694641997.97
+austerity_pass_deep (Selected 127x) - WinRate: 92.2% | AvgImpact: 112981618.55
+austerity_streamline (Selected 128x) - WinRate: 91.5% | AvgImpact: 6568054451.38
+austerity_stimulus (Selected 119x) - WinRate: 89.4% | AvgImpact: 1260504263.31
+nuclear_build_full (Selected 159x) - WinRate: 93.1% | AvgImpact: 4651721407.91
+nuclear_renewable_focus (Selected 137x) - WinRate: 93.9% | AvgImpact: 1094890573.26
+nuclear_fossil_fuel (Selected 141x) - WinRate: 94.2% | AvgImpact: 2127659638.96
+immigration_expand_skilled (Selected 138x) - WinRate: 91.9% | AvgImpact: 1086956587.03
+immigration_guest_worker (Selected 147x) - WinRate: 93.8% | AvgImpact: 12636687178.37
+immigration_restrict (Selected 146x) - WinRate: 92.9% | AvgImpact: 80632195.22
+tech_full_dereg (Selected 138x) - WinRate: 91.1% | AvgImpact: 1086956583.06
+tech_regulated_hub (Selected 131x) - WinRate: 88.4% | AvgImpact: 63.06
+tech_reject (Selected 134x) - WinRate: 93.0% | AvgImpact: 5597014995.12
+foreign_aid_full (Selected 138x) - WinRate: 89.3% | AvgImpact: 2753623260.01
+foreign_aid_financial (Selected 120x) - WinRate: 89.8% | AvgImpact: 2279081842.55
+foreign_aid_abstain (Selected 141x) - WinRate: 95.8% | AvgImpact: 726131294.22
+prison_rehab_pass (Selected 148x) - WinRate: 92.7% | AvgImpact: 360779028.88
+prison_privatize (Selected 123x) - WinRate: 88.2% | AvgImpact: 8802508703.48
+prison_mandatory_minimums (Selected 138x) - WinRate: 94.9% | AvgImpact: 2257120214.48
+water_desal_grid (Selected 133x) - WinRate: 92.2% | AvgImpact: 2255639157.51
+water_ration_import (Selected 140x) - WinRate: 89.4% | AvgImpact: 3854494607.92
+water_deregulate (Selected 142x) - WinRate: 94.3% | AvgImpact: 612170927.49
+cyber_shield_surveillance (Selected 133x) - WinRate: 88.3% | AvgImpact: 2255639154.63
+cyber_defense_only (Selected 149x) - WinRate: 92.9% | AvgImpact: 2092570683.38
+cyber_privacy_bill (Selected 158x) - WinRate: 91.0% | AvgImpact: 1854682052.32
+wealth_tax_pass_full (Selected 167x) - WinRate: 96.5% | AvgImpact: 12192518057.22
+wealth_tax_loophole_only (Selected 121x) - WinRate: 93.1% | AvgImpact: 4545454622.20
+wealth_tax_reject (Selected 146x) - WinRate: 90.4% | AvgImpact: 1027397320.57
+scandal_investigate_full (Selected 148x) - WinRate: 86.5% | AvgImpact: 3121444214.31
+scandal_ignore (Selected 128x) - WinRate: 91.4% | AvgImpact: 1171875062.60
+scandal_publish (Selected 64x) - WinRate: 87.5% | AvgImpact: 9730430359.19
+scandal_bury (Selected 66x) - WinRate: 84.8% | AvgImpact: 111.29
+
+[+] Wrote full scenario option statistics to autoplay_report.csv
