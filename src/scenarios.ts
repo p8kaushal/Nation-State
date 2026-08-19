@@ -66,6 +66,7 @@ export const scenarios: Record<ScenarioKey, NationState> = {
     foreignRelationsIndex: 50,
     businessTrust: 65,
     publicTrust: 45,
+    approvalRating: 52,
   },
   fragile_democracy: {
     ...getInitialState(),

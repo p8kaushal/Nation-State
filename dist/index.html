@@ -480,9 +480,139 @@
       width: 100%;
       height: 100%;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
+      gap: 8px;
+      padding: 8px;
       overflow: hidden;
+    }
+
+    /* Nation Health Panel / Status Board */
+    .nation-view-container {
+      position: relative;
+      z-index: 2;
+      width: 92%;
+      max-width: 480px;
+      flex-shrink: 0;
+    }
+
+    .status-board-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      background: rgba(11, 27, 61, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 6px 8px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    }
+
+    .status-board-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 2px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      gap: 2px;
+      text-align: center;
+      cursor: default;
+    }
+
+    .status-board-item:hover {
+      transform: translateY(-1px);
+    }
+
+    .status-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+    }
+
+    .sector-icon {
+      width: 15px;
+      height: 15px;
+      display: block;
+    }
+
+    .status-name {
+      font-size: 8.5px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    .status-score {
+      font-size: 12.5px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    /* Color scheme classes */
+    .status-board-item.state-healthy {
+      background: rgba(28, 75, 70, 0.45);
+      border-color: #0D9488;
+      color: #2DD4BF;
+    }
+    .status-board-item.state-healthy .sector-icon {
+      stroke: #2DD4BF;
+    }
+    .status-board-item.state-healthy .status-score {
+      color: #5EEAD4;
+    }
+    .status-board-item.state-healthy .status-name {
+      color: #A7F3D0;
+    }
+
+    .status-board-item.state-neutral {
+      background: rgba(100, 116, 139, 0.25);
+      border-color: #64748B;
+      color: #CBD5E1;
+    }
+    .status-board-item.state-neutral .sector-icon {
+      stroke: #94A3B8;
+    }
+    .status-board-item.state-neutral .status-score {
+      color: #F1F5F9;
+    }
+    .status-board-item.state-neutral .status-name {
+      color: #94A3B8;
+    }
+
+    .status-board-item.state-critical {
+      background: rgba(128, 0, 32, 0.55);
+      border-color: #DC2626;
+      color: #FCA5A5;
+      animation: pulse-critical 1.8s infinite;
+    }
+    .status-board-item.state-critical .sector-icon {
+      stroke: #EF4444;
+    }
+    .status-board-item.state-critical .status-score {
+      color: #FEE2E2;
+    }
+    .status-board-item.state-critical .status-name {
+      color: #FCA5A5;
+    }
+
+    @keyframes pulse-critical {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+        border-color: #DC2626;
+      }
+      50% {
+        box-shadow: 0 0 8px 2px rgba(220, 38, 38, 0.65);
+        border-color: #EF4444;
+      }
     }
 
     .office-bg-container {
@@ -508,8 +638,8 @@
       position: relative;
       z-index: 2;
       width: 92%;
-      max-width: 450px;
-      max-height: calc(100% - 20px);
+      max-width: 480px;
+      max-height: calc(100% - 75px);
       overflow-y: auto;
       background-color: #FAF8F5; /* Parchment Paper */
       color: #1E2022;
@@ -1837,8 +1967,432 @@
     .side-panel:has(.spotlight-highlight) {
       z-index: 4002 !important;
     }
+
+    /* ========================================================
+       12. Responsive Navigation & Mobile Pass (<= 768px)
+       ======================================================== */
+    .mobile-nav-bar {
+      display: none;
+    }
+
+    /* Base Touch Target Optimization */
+    .executive-option-btn {
+      min-height: 44px;
+    }
+    .ctrl-btn {
+      min-height: 38px;
+    }
+    .mobile-tab-btn {
+      min-height: 44px;
+    }
+    .log-toggle-btn {
+      min-height: 44px;
+    }
+    .skip-btn {
+      min-height: 44px;
+    }
+    .home-menu-btn {
+      min-height: 44px;
+    }
+    .scenario-card {
+      min-height: 44px;
+    }
+    .brand-short {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .brand-full {
+        display: none;
+      }
+      .brand-short {
+        display: inline;
+        font-size: 13px;
+        font-weight: 700;
+        font-family: var(--font-serif);
+        color: var(--federal-navy);
+        white-space: nowrap;
+      }
+      /* Mobile Nav Bar */
+      .mobile-nav-bar {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100vw;
+        height: 55px;
+        background: #FAF8F5;
+        border-top: 2px solid var(--federal-navy);
+        z-index: 200;
+        align-items: center;
+        justify-content: space-around;
+        box-shadow: 0 -2px 10px rgba(11, 27, 61, 0.08);
+        padding: 0 4px;
+      }
+
+      .mobile-tab-btn {
+        flex: 1;
+        height: 100%;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        background: transparent;
+        border: none;
+        border-top: 3px solid transparent;
+        border-radius: 0;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--bureaucracy-dark);
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .mobile-tab-btn:hover {
+        background: rgba(11, 27, 61, 0.04);
+        color: var(--federal-navy);
+      }
+
+      .mobile-tab-btn.active {
+        color: var(--federal-navy);
+        font-weight: 700;
+        border-top-color: var(--federal-navy);
+        background: rgba(11, 27, 61, 0.05);
+      }
+
+      /* Top Bar */
+      .top-bar {
+        height: 50px;
+        min-height: 50px;
+        max-width: 100vw;
+        padding: 0 8px;
+        gap: 4px;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        overflow: hidden;
+      }
+
+      .top-bar-left {
+        gap: 6px;
+        flex-shrink: 1;
+        min-width: 0;
+      }
+
+      .app-branding h1 {
+        font-size: 12.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .app-branding .subtitle {
+        display: none;
+      }
+
+      .scenario-control {
+        display: none;
+      }
+
+      .top-bar-right {
+        gap: 3px;
+        flex-shrink: 0;
+      }
+
+      .save-load-group {
+        gap: 3px;
+      }
+
+      .save-load-group #resume-btn,
+      .save-load-group #delete-save-btn {
+        display: none !important;
+      }
+
+      .ctrl-btn {
+        min-height: 38px;
+        padding: 4px 6px;
+        font-size: 10.5px;
+      }
+
+      .turn-badge {
+        font-size: 11px;
+        padding: 3px 6px;
+      }
+
+      /* Main Workspace Single-View Layout */
+      .main-workspace {
+        display: flex;
+        flex-direction: column;
+        grid-template-columns: 1fr;
+        padding: 6px;
+        padding-bottom: 62px; /* clearance for 55px fixed bottom bar */
+        height: calc(100vh - 50px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        max-width: 100vw;
+        box-sizing: border-box;
+        gap: 8px;
+      }
+
+      /* Workspace Column Visibility based on active tab */
+      /* 1. Default / Desk Tab Active */
+      .main-workspace.mobile-tab-active-desk #panel-left,
+      .main-workspace.mobile-tab-active-desk #panel-right,
+      body.mobile-tab-active-desk #panel-left,
+      body.mobile-tab-active-desk #panel-right,
+      .main-workspace:not(.mobile-tab-active-stats):not(.mobile-tab-active-briefing) #panel-left,
+      .main-workspace:not(.mobile-tab-active-stats):not(.mobile-tab-active-briefing) #panel-right {
+        display: none !important;
+      }
+
+      .main-workspace.mobile-tab-active-desk .center-stage,
+      body.mobile-tab-active-desk .center-stage,
+      .main-workspace:not(.mobile-tab-active-stats):not(.mobile-tab-active-briefing) .center-stage {
+        display: flex !important;
+        width: 100%;
+        flex: 1;
+        min-height: 100%;
+        height: auto;
+      }
+
+      .main-workspace.mobile-tab-active-desk #bottom-log-strip,
+      body.mobile-tab-active-desk #bottom-log-strip,
+      .main-workspace:not(.mobile-tab-active-stats):not(.mobile-tab-active-briefing) #bottom-log-strip {
+        display: none !important;
+      }
+
+      /* 2. Cabinet / Stats Tab Active */
+      .main-workspace.mobile-tab-active-stats .center-stage,
+      body.mobile-tab-active-stats .center-stage {
+        display: none !important;
+      }
+
+      .main-workspace.mobile-tab-active-stats #bottom-log-strip,
+      body.mobile-tab-active-stats #bottom-log-strip {
+        display: none !important;
+      }
+
+      .main-workspace.mobile-tab-active-stats #panel-left,
+      .main-workspace.mobile-tab-active-stats #panel-right,
+      body.mobile-tab-active-stats #panel-left,
+      body.mobile-tab-active-stats #panel-right {
+        display: flex !important;
+        width: 100%;
+        flex: none;
+        overflow: visible;
+      }
+
+      .stat-compact-row {
+        min-height: 40px;
+        padding: 7px 10px;
+      }
+
+      .stat-compact-name {
+        font-size: 12.5px;
+      }
+
+      .stat-compact-val {
+        font-size: 12.5px;
+      }
+
+      .delta-badge {
+        font-size: 11px;
+        min-width: 44px;
+        padding: 2px 6px;
+      }
+
+      /* 3. Briefings Tab Active */
+      .main-workspace.mobile-tab-active-briefing .center-stage,
+      body.mobile-tab-active-briefing .center-stage {
+        display: none !important;
+      }
+
+      .main-workspace.mobile-tab-active-briefing #panel-left,
+      .main-workspace.mobile-tab-active-briefing #panel-right,
+      body.mobile-tab-active-briefing #panel-left,
+      body.mobile-tab-active-briefing #panel-right {
+        display: none !important;
+      }
+
+      .main-workspace.mobile-tab-active-briefing #bottom-log-strip,
+      body.mobile-tab-active-briefing #bottom-log-strip {
+        display: flex !important;
+        position: fixed;
+        top: 48px;
+        bottom: 55px;
+        left: 0;
+        right: 0;
+        width: 100vw;
+        height: auto !important;
+        max-height: none !important;
+        z-index: 100;
+        border-top: none;
+        box-shadow: none;
+      }
+
+      .main-workspace.mobile-tab-active-briefing #bottom-log-strip .log-scrollable-body,
+      body.mobile-tab-active-briefing #bottom-log-strip .log-scrollable-body {
+        display: block !important;
+        flex: 1;
+        height: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Center stage and memo card responsiveness */
+      .center-stage {
+        height: auto;
+        min-height: 100%;
+        border-radius: 6px;
+        overflow-y: auto;
+      }
+
+      .decision-desk-container {
+        padding: 6px;
+        height: auto;
+        min-height: 100%;
+        justify-content: flex-start;
+        overflow-y: visible;
+      }
+
+      .nation-view-container {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .status-board-grid {
+        gap: 3px;
+        padding: 4px 6px;
+      }
+
+      .status-board-item {
+        padding: 3px 1px;
+      }
+
+      .status-name {
+        font-size: 7.5px;
+      }
+
+      .status-score {
+        font-size: 11px;
+      }
+
+      .sector-icon {
+        width: 13px;
+        height: 13px;
+      }
+
+      .memo-container {
+        width: 100%;
+        max-width: 100%;
+        max-height: none;
+        overflow-y: visible;
+        padding: 12px 14px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      }
+
+      .memo-subject-title {
+        font-size: 14.5px;
+      }
+
+      .memo-body-text {
+        font-size: 12px;
+      }
+
+      .executive-option-btn {
+        padding: 10px 12px;
+      }
+
+      .option-title-text {
+        font-size: 12px;
+      }
+
+      /* Home Screen & Modals Responsive Adjustments */
+      #home-screen {
+        padding: 12px 10px;
+      }
+
+      .home-card-chamber {
+        padding: 18px 14px;
+        max-width: 100%;
+        width: 100%;
+      }
+
+      .home-title {
+        font-size: 20px;
+      }
+
+      .home-subtitle {
+        font-size: 12px;
+        margin-bottom: 14px;
+      }
+
+      .home-divider {
+        margin-bottom: 16px;
+      }
+
+      .scenario-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .scenario-card {
+        padding: 10px 12px;
+      }
+
+      .scenario-card-title {
+        font-size: 13.5px;
+      }
+
+      .scenario-card-desc {
+        font-size: 11.5px;
+        min-height: 0;
+        margin-bottom: 6px;
+      }
+
+      .scenario-preview-stats {
+        padding: 4px 6px;
+      }
+
+      .modal-content-card,
+      .how-to-play-card,
+      .game-over-modal {
+        width: 95%;
+        max-width: 95%;
+        max-height: 85vh;
+        padding: 14px;
+      }
+
+      .modal-header {
+        padding: 10px 14px;
+      }
+
+      .modal-header h2 {
+        font-size: 15px;
+      }
+
+      .modal-body {
+        padding: 10px 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .history-table th,
+      .history-table td {
+        padding: 6px 6px;
+        font-size: 11px;
+      }
+
+      #tutorial-card {
+        width: 95%;
+        max-width: 95%;
+        bottom: 60px;
+      }
+    }
   </style>
-  <script type="module" crossorigin src="/assets/index-C4lEcpkv.js"></script>
+  <script type="module" crossorigin src="/assets/index-DkAK0bKs.js"></script>
 </head>
 <body>
   <!-- Cabinet Chamber Home Screen Overlay -->
@@ -2017,7 +2571,7 @@
     <header class="top-bar">
       <div class="top-bar-left">
         <div class="app-branding">
-          <h1>🏛️ Cabinet of the Republic</h1>
+          <h1 class="brand-title"><span class="brand-full">🏛️ Cabinet of the Republic</span><span class="brand-short">🏛️ Cabinet</span></h1>
           <span class="subtitle">Executive Simulation</span>
         </div>
         <div class="scenario-control">
@@ -2068,6 +2622,7 @@
       <section class="center-stage">
         <div class="decision-desk-container">
           <div id="office-bg-container" class="office-bg-container"></div>
+          <div id="nation-view-container" class="nation-view-container"></div>
           <div id="decision-container" class="memo-container">
             <!-- Memorandum Sheet Header -->
             <div class="memo-header-banner">
@@ -2143,6 +2698,19 @@
       </div>
       <div id="log-panel" class="log-scrollable-body"></div>
     </footer>
+
+    <!-- Mobile Bottom Navigation Bar (55px fixed bottom for <= 768px screens) -->
+    <nav class="mobile-nav-bar" id="mobile-nav-bar">
+      <button id="mobile-tab-desk" class="mobile-tab-btn active" title="Executive Desk View">
+        <span>🏛️ Desk</span>
+      </button>
+      <button id="mobile-tab-stats" class="mobile-tab-btn" title="Cabinet Stats & Society View">
+        <span>📊 Cabinet</span>
+      </button>
+      <button id="mobile-tab-briefing" class="mobile-tab-btn" title="Situation Teletype Briefings View">
+        <span>📜 Briefings</span>
+      </button>
+    </nav>
   </div>
 
   <!-- Dynamic Causal Tooltip Floater -->

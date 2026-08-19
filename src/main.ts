@@ -4,6 +4,7 @@ import decisionsData from './decisions.json';
 import { getRandomOption } from './autoplay';
 import { scenarios, scenarioMetadata, getScenarioInitialState, ScenarioKey } from './scenarios';
 import { getOfficeBgSvg } from './office_scene';
+import { renderNationView } from './nation_view';
 
 interface RunHistoryItem {
   id: string;
@@ -51,6 +52,7 @@ const pendingEffectsList = document.getElementById('pending-effects-list') as HT
 const pendingSection = document.getElementById('pending-section') as HTMLElement;
 
 // Center Stage elements
+const nationViewContainer = document.getElementById('nation-view-container') as HTMLElement;
 const decisionContainer = document.getElementById('decision-container') as HTMLElement;
 const decisionRefBadge = document.getElementById('decision-ref-badge') as HTMLElement;
 const decisionTypeBadge = document.getElementById('decision-type-badge') as HTMLElement;
@@ -113,6 +115,38 @@ const tutorialNextBtn = document.getElementById('tutorial-next-btn') as HTMLButt
 
 // In-game Top Bar Menu Button
 const menuHomeBtn = document.getElementById('menu-home-btn') as HTMLButtonElement | null;
+
+// Mobile Navigation Tab elements
+const mobileTabDesk = document.getElementById('mobile-tab-desk') as HTMLButtonElement | null;
+const mobileTabStats = document.getElementById('mobile-tab-stats') as HTMLButtonElement | null;
+const mobileTabBriefing = document.getElementById('mobile-tab-briefing') as HTMLButtonElement | null;
+const mainWorkspace = document.querySelector('.main-workspace') as HTMLElement | null;
+
+type MobileTab = 'desk' | 'stats' | 'briefing';
+let currentMobileTab: MobileTab = 'desk';
+
+function setMobileTab(tab: MobileTab) {
+  currentMobileTab = tab;
+
+  if (mobileTabDesk) mobileTabDesk.classList.toggle('active', tab === 'desk');
+  if (mobileTabStats) mobileTabStats.classList.toggle('active', tab === 'stats');
+  if (mobileTabBriefing) mobileTabBriefing.classList.toggle('active', tab === 'briefing');
+
+  if (mainWorkspace) {
+    mainWorkspace.classList.remove('mobile-tab-active-desk', 'mobile-tab-active-stats', 'mobile-tab-active-briefing');
+    mainWorkspace.classList.add(`mobile-tab-active-${tab}`);
+  }
+  document.body.classList.remove('mobile-tab-active-desk', 'mobile-tab-active-stats', 'mobile-tab-active-briefing');
+  document.body.classList.add(`mobile-tab-active-${tab}`);
+
+  if (tab === 'briefing') {
+    if (!isLogExpanded) {
+      isLogExpanded = true;
+      if (bottomLogStrip) bottomLogStrip.classList.add('expanded');
+      if (toggleLogBtn) toggleLogBtn.textContent = '▼ Collapse Feed';
+    }
+  }
+}
 
 // Game Over Overlay elements
 const gameOverOverlay = document.getElementById('game-over-overlay') as HTMLElement;
@@ -206,7 +240,7 @@ const ECONOMY_STATS: StatConfig[] = [
   },
   {
     key: 'nationalDebt',
-    name: 'National Debt',
+    name: 'Debt',
     icon: '💳',
     inverted: true,
     format: (s) => `${formatCurrency(s.nationalDebt)} (${((s.nationalDebt / s.gdp) * 100).toFixed(0)}%)`,
@@ -249,13 +283,13 @@ const FACTION_TRUST_STATS: StatConfig[] = [
 const SOCIETY_STATS: StatConfig[] = [
   {
     key: 'approvalRating',
-    name: 'Approval Rating',
+    name: 'Approval',
     icon: '🏛️',
     format: (s) => `${s.approvalRating.toFixed(1)}%`,
   },
   {
     key: 'povertyRate',
-    name: 'Poverty Rate',
+    name: 'Poverty',
     icon: '📉',
     inverted: true,
     format: (s) => `${s.povertyRate.toFixed(1)}%`,
@@ -269,7 +303,7 @@ const SOCIETY_STATS: StatConfig[] = [
   },
   {
     key: 'crimeRate',
-    name: 'Crime Rate',
+    name: 'Crime',
     icon: '🚨',
     inverted: true,
     format: (s) => `${s.crimeRate.toFixed(1)}`,
@@ -286,19 +320,19 @@ const SOCIETY_STATS: StatConfig[] = [
 const INFRASTRUCTURE_STATS: StatConfig[] = [
   {
     key: 'educationIndex',
-    name: 'Education Index',
+    name: 'Education',
     icon: '🎓',
     format: (s) => s.educationIndex.toFixed(1),
   },
   {
     key: 'healthcareIndex',
-    name: 'Healthcare Index',
+    name: 'Healthcare',
     icon: '🏥',
     format: (s) => s.healthcareIndex.toFixed(1),
   },
   {
     key: 'militaryStrength',
-    name: 'Military Strength',
+    name: 'Military',
     icon: '🛡️',
     format: (s) => s.militaryStrength.toFixed(1),
   },
@@ -310,7 +344,7 @@ const INFRASTRUCTURE_STATS: StatConfig[] = [
   },
   {
     key: 'foreignRelationsIndex',
-    name: 'Foreign Relations',
+    name: 'Foreign Rel.',
     icon: '🌐',
     format: (s) => s.foreignRelationsIndex.toFixed(1),
   },
@@ -941,6 +975,9 @@ function toggleLogPanel() {
 
 function render() {
   turnDisplay.textContent = `Turn ${state.turn}`;
+  if (nationViewContainer) {
+    nationViewContainer.innerHTML = renderNationView(state);
+  }
   renderStats();
   renderDecision();
   renderLogs();
@@ -1163,6 +1200,7 @@ function resetGameToScenario(scenarioKey: ScenarioKey) {
   turnLogsHistory.push(`Turn 1 Initialized.`);
 
   hideCausalTooltip();
+  setMobileTab('desk');
   render();
   saveGame();
 }
@@ -1524,12 +1562,32 @@ modalDeleteSaveBtn.addEventListener('click', () => {
   showHomeScreen();
 });
 
+// Mobile Bottom Navigation Tab event listeners
+if (mobileTabDesk) {
+  mobileTabDesk.addEventListener('click', () => {
+    setMobileTab('desk');
+  });
+}
+
+if (mobileTabStats) {
+  mobileTabStats.addEventListener('click', () => {
+    setMobileTab('stats');
+  });
+}
+
+if (mobileTabBriefing) {
+  mobileTabBriefing.addEventListener('click', () => {
+    setMobileTab('briefing');
+  });
+}
+
 // Startup Initialization
 const officeBg = document.getElementById('office-bg-container');
 if (officeBg) {
   officeBg.innerHTML = getOfficeBgSvg();
 }
 
+setMobileTab('desk');
 updateSaveControls();
 renderHistoryTable();
 updateHomeContinueButton();

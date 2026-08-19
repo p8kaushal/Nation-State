@@ -478,7 +478,7 @@ function checkGameEnd(state: NationState): NationState {
     return state;
   }
 
-  if (state.turn === 10 || state.turn === 20 || state.turn === 30 || state.turn === 40) {
+  if (state.turn === 10) {
     if (state.approvalRating < 40) {
       state.gameOver = true;
       state.gameResult = 'lose';
@@ -489,10 +489,10 @@ function checkGameEnd(state: NationState): NationState {
     }
   }
 
-  if (state.turn > 40) {
+  if (state.turn > 20) {
     state.gameOver = true;
     state.gameResult = 'win';
-    state.gameOverReason = 'Congratulations! You have completed your presidency and stabilized the nation.';
+    state.gameOverReason = 'Congratulations! You have completed your 20-turn administration and stabilized the nation.';
     return state;
   }
 

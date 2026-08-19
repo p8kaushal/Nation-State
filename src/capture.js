@@ -1,5 +1,30 @@
 import puppeteer from 'puppeteer';
 import { createServer } from 'vite';
+import fs from 'fs';
+import path from 'path';
+
+const ARTIFACT_DIRS = [
+  '/Users/parthkaushal/.gemini/antigravity/brain/39142f08-3903-426a-8605-545acaf72591',
+  '/Users/parthkaushal/.gemini/antigravity/brain/2189a140-61b9-46d2-bb1d-772f486c47af',
+];
+
+for (const dir of ARTIFACT_DIRS) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+async function saveScreenshots(page, filename) {
+  for (const dir of ARTIFACT_DIRS) {
+    const fullPath = path.join(dir, filename);
+    try {
+      await page.screenshot({ path: fullPath });
+      console.log(`Saved screenshot: ${fullPath}`);
+    } catch (e) {
+      console.warn(`Failed to write to ${fullPath}:`, e.message);
+    }
+  }
+}
 
 (async () => {
   const server = await createServer({
@@ -11,85 +36,74 @@ import { createServer } from 'vite';
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
-  
+
   const page = await browser.newPage();
-  
-  // Set standard desktop viewport size
-  await page.setViewport({ width: 1200, height: 800 });
-  
-  // Navigate to the dev server
+
+  // -------------------------------------------------------------
+  // Part 1: Mobile 375px Viewport (iPhone SE / Standard Mobile)
+  // -------------------------------------------------------------
+  await page.setViewport({ width: 375, height: 667 });
   await page.goto('http://localhost:5173/', { waitUntil: 'networkidle0' });
   await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // 1. Click "Start Tour" on Home Screen to begin Tutorial Walkthrough (Step 1 Spotlight)
-  await page.click('#home-start-tour-btn');
-  await new Promise(resolve => setTimeout(resolve, 400));
-  
-  // Take screenshot of Step 1 Tutorial Spotlight as real_app_screenshot.png
-  const parentPath = '/Users/parthkaushal/.gemini/antigravity/brain/39142f08-3903-426a-8605-545acaf72591/real_app_screenshot.png';
-  await page.screenshot({ path: parentPath });
 
-  try {
-    const subagentPath = '/Users/parthkaushal/.gemini/antigravity/brain/49ea820c-5f69-4e83-b4ed-188bd76677a7/real_app_screenshot.png';
-    await page.screenshot({ path: subagentPath });
-  } catch (e) {}
-
-  console.log('1. Step 1 Tutorial (Executive Memorandum Spotlight) screenshot captured successfully!');
-
-  // 2. Click "Next" to advance to Step 2 (Faction Trust Blocs Spotlight)
-  await page.click('#tutorial-next-btn');
-  await new Promise(resolve => setTimeout(resolve, 400));
-  try {
-    await page.screenshot({
-      path: '/Users/parthkaushal/.gemini/antigravity/brain/49ea820c-5f69-4e83-b4ed-188bd76677a7/tutorial_step2_screenshot.png'
-    });
-    await page.screenshot({
-      path: '/Users/parthkaushal/.gemini/antigravity/brain/39142f08-3903-426a-8605-545acaf72591/tutorial_step2_screenshot.png'
-    });
-  } catch (e) {}
-  console.log('2. Step 2 Tutorial (Faction Trust Blocs Spotlight) screenshot captured successfully!');
-
-  // 3. Click "Next" to advance to Step 3 (Dynamic Cabinet Dockets Spotlight)
-  await page.click('#tutorial-next-btn');
-  await new Promise(resolve => setTimeout(resolve, 400));
-  try {
-    await page.screenshot({
-      path: '/Users/parthkaushal/.gemini/antigravity/brain/49ea820c-5f69-4e83-b4ed-188bd76677a7/tutorial_step3_screenshot.png'
-    });
-    await page.screenshot({
-      path: '/Users/parthkaushal/.gemini/antigravity/brain/39142f08-3903-426a-8605-545acaf72591/tutorial_step3_screenshot.png'
-    });
-  } catch (e) {}
-  console.log('3. Step 3 Tutorial (Dynamic Cabinet Dockets Spotlight) screenshot captured successfully!');
-
-  // 4. Click Finish Tour and verify clean return
-  await page.click('#tutorial-next-btn');
-  await new Promise(resolve => setTimeout(resolve, 400));
-  try {
-    await page.screenshot({
-      path: '/Users/parthkaushal/.gemini/antigravity/brain/49ea820c-5f69-4e83-b4ed-188bd76677a7/tutorial_completed_screenshot.png'
-    });
-    await page.screenshot({
-      path: '/Users/parthkaushal/.gemini/antigravity/brain/39142f08-3903-426a-8605-545acaf72591/tutorial_completed_screenshot.png'
-    });
-  } catch (e) {}
-  console.log('4. Tutorial Completed and chamber view captured successfully!');
-
-  // 5. Test Start Tour from inside How to Play Handbook
-  await page.click('#menu-home-btn');
+  // Enter game from Title screen
+  await page.click('#home-new-game-btn');
   await new Promise(resolve => setTimeout(resolve, 300));
-  await page.click('#home-how-to-play-btn');
-  await new Promise(resolve => setTimeout(resolve, 300));
-  await page.click('#how-to-play-tour-btn');
-  await new Promise(resolve => setTimeout(resolve, 400));
-  console.log('5. Tour launched successfully from inside How to Play Handbook!');
+  await page.click('#home-start-presidency-btn');
+  await new Promise(resolve => setTimeout(resolve, 500));
 
-  // Close tutorial via Skip Tutorial button
-  await page.click('#tutorial-skip-btn');
+  // 1. Capture 375px Main Game Screen (Desk view)
+  await saveScreenshots(page, 'mobile_375_desk.png');
+  console.log('✓ Captured mobile_375_desk.png');
+
+  // 2. Click Stats / Cabinet tab & capture
+  await page.click('#mobile-tab-stats');
+  await new Promise(resolve => setTimeout(resolve, 400));
+  await saveScreenshots(page, 'mobile_375_stats.png');
+  console.log('✓ Captured mobile_375_stats.png');
+
+  // 3. Click Briefings tab & capture
+  await page.click('#mobile-tab-briefing');
+  await new Promise(resolve => setTimeout(resolve, 400));
+  await saveScreenshots(page, 'mobile_375_log.png');
+  console.log('✓ Captured mobile_375_log.png');
+
+  // 4. Click Past Runs button (from top-bar) & capture modal
+  await page.click('#mobile-tab-desk');
   await new Promise(resolve => setTimeout(resolve, 300));
-  console.log('6. Skip Tutorial tested successfully!');
+  await page.click('#past-runs-btn');
+  await new Promise(resolve => setTimeout(resolve, 400));
+  await saveScreenshots(page, 'mobile_375_past_runs.png');
+  console.log('✓ Captured mobile_375_past_runs.png');
+
+  // Close past runs modal
+  await page.click('#close-history-btn');
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  // -------------------------------------------------------------
+  // Part 2: Mobile 428px Viewport (iPhone 13/14 Pro Max)
+  // -------------------------------------------------------------
+  await page.setViewport({ width: 428, height: 926 });
+  await new Promise(resolve => setTimeout(resolve, 400));
+  await saveScreenshots(page, 'mobile_428_desk.png');
+  console.log('✓ Captured mobile_428_desk.png');
+
+  // -------------------------------------------------------------
+  // Part 3: Tablet 768px Viewport (iPad / Tablet portrait)
+  // -------------------------------------------------------------
+  await page.setViewport({ width: 768, height: 1024 });
+  await new Promise(resolve => setTimeout(resolve, 400));
+  await saveScreenshots(page, 'tablet_768_view.png');
+  console.log('✓ Captured tablet_768_view.png');
+
+  // Desktop captures
+  await page.setViewport({ width: 1200, height: 800 });
+  await new Promise(resolve => setTimeout(resolve, 400));
+  await saveScreenshots(page, 'real_app_screenshot.png');
+  await saveScreenshots(page, 'nation_health_board_screenshot.png');
+
+  console.log('All responsive mobile and desktop screenshots captured successfully!');
 
   await browser.close();
   await server.close();
 })();
-
