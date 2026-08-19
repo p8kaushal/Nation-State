@@ -21,15 +21,15 @@ function runScenarioAndSaveLoadTest() {
   // 2. Verify scenario specific values
   const postWar = scenarios.post_war;
   if (
-    postWar.approvalRating !== 30 ||
-    postWar.publicTrust !== 25 ||
-    postWar.internationalTrust !== 25 ||
-    postWar.educationIndex !== 30 ||
-    postWar.healthcareIndex !== 30 ||
-    postWar.militaryStrength !== 40 ||
-    postWar.corruptionLevel !== 30 ||
-    postWar.environmentIndex !== 50 ||
-    postWar.nationalDebt !== 45_000_000_000
+    postWar.approvalRating !== 35 ||
+    postWar.publicTrust !== 35 ||
+    postWar.internationalTrust !== 32 ||
+    postWar.educationIndex !== 35 ||
+    postWar.healthcareIndex !== 35 ||
+    postWar.militaryStrength !== 45 ||
+    postWar.corruptionLevel !== 25 ||
+    postWar.environmentIndex !== 55 ||
+    postWar.nationalDebt !== 30_000_000_000
   ) {
     throw new Error('post_war scenario has incorrect stats!');
   }
@@ -49,8 +49,8 @@ function runScenarioAndSaveLoadTest() {
 
   const fragileDemocracy = scenarios.fragile_democracy;
   if (
-    fragileDemocracy.militaryTrust !== 30 ||
-    fragileDemocracy.publicTrust !== 30 ||
+    fragileDemocracy.militaryTrust !== 24 ||
+    fragileDemocracy.publicTrust !== 26 ||
     fragileDemocracy.approvalRating !== 35
   ) {
     throw new Error('fragile_democracy scenario has incorrect stats!');

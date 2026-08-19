@@ -3,6 +3,7 @@ import { NationState, Decision, DecisionOption, StatDelta } from './types';
 import decisionsData from './decisions.json';
 import { getRandomOption } from './autoplay';
 import { scenarios, scenarioMetadata, getScenarioInitialState, ScenarioKey } from './scenarios';
+import { getOfficeBgSvg } from './office_scene';
 
 interface RunHistoryItem {
   id: string;
@@ -27,6 +28,9 @@ let historyRecorded = false;
 let isAutoplayRunning = false;
 let autoplayTimeoutId: number | null = null;
 
+// Bottom log strip state
+let isLogExpanded = false;
+
 // Header elements & Scenario selector
 const scenarioSelect = document.getElementById('scenario-select') as HTMLSelectElement;
 const turnDisplay = document.getElementById('turn-display') as HTMLElement;
@@ -34,13 +38,19 @@ const resumeBtn = document.getElementById('resume-btn') as HTMLButtonElement;
 const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
 const loadBtn = document.getElementById('load-btn') as HTMLButtonElement;
 const deleteSaveBtn = document.getElementById('delete-save-btn') as HTMLButtonElement;
+const pastRunsBtn = document.getElementById('past-runs-btn') as HTMLButtonElement;
 
-// Main card elements
-const macroKpiGrid = document.getElementById('macro-kpi-grid') as HTMLElement;
-const statsList = document.getElementById('stats-list') as HTMLElement;
+// Left panel stat list elements
+const economyStatsList = document.getElementById('economy-stats-list') as HTMLElement;
 const trustStatsList = document.getElementById('trust-stats-list') as HTMLElement;
-const pendingEffectsList = document.getElementById('pending-effects-list') as HTMLElement;
 
+// Right panel stat list elements
+const societyStatsList = document.getElementById('society-stats-list') as HTMLElement;
+const infrastructureStatsList = document.getElementById('infrastructure-stats-list') as HTMLElement;
+const pendingEffectsList = document.getElementById('pending-effects-list') as HTMLElement;
+const pendingSection = document.getElementById('pending-section') as HTMLElement;
+
+// Center Stage elements
 const decisionContainer = document.getElementById('decision-container') as HTMLElement;
 const decisionRefBadge = document.getElementById('decision-ref-badge') as HTMLElement;
 const decisionTypeBadge = document.getElementById('decision-type-badge') as HTMLElement;
@@ -48,9 +58,20 @@ const decisionTitle = document.getElementById('decision-title') as HTMLElement;
 const decisionDesc = document.getElementById('decision-description') as HTMLElement;
 const decisionOptions = document.getElementById('decision-options') as HTMLElement;
 const nextTurnBtn = document.getElementById('next-turn-btn') as HTMLButtonElement;
+
+// Bottom Teletype Strip elements
+const bottomLogStrip = document.getElementById('bottom-log-strip') as HTMLElement;
+const logStripBar = document.getElementById('log-strip-bar') as HTMLElement;
+const logPreview = document.getElementById('log-preview') as HTMLElement;
+const toggleLogBtn = document.getElementById('toggle-log-btn') as HTMLButtonElement;
 const logPanel = document.getElementById('log-panel') as HTMLElement;
 
-// History elements
+// Dynamic Floating Tooltip
+const statTooltipFloater = document.getElementById('stat-tooltip-floater') as HTMLElement;
+
+// History Modal elements
+const historyModal = document.getElementById('history-modal') as HTMLElement;
+const closeHistoryBtn = document.getElementById('close-history-btn') as HTMLButtonElement;
 const historyTable = document.getElementById('history-table') as HTMLTableElement;
 const historyTableBody = document.getElementById('history-table-body') as HTMLTableSectionElement;
 const noHistoryMsg = document.getElementById('no-history-msg') as HTMLElement;
@@ -87,6 +108,7 @@ const STAT_NAME_MAP: Record<string, string> = {
   gdp: 'GDP',
   gdpGrowthRate: 'GDP Growth',
   population: 'Population',
+  debtCrisis: 'Solvency',
 };
 
 const SHORT_STAT_NAME_MAP: Record<string, string> = {
@@ -100,15 +122,16 @@ const SHORT_STAT_NAME_MAP: Record<string, string> = {
   environmentIndex: 'Environment',
   crimeRate: 'Crime',
   foreignRelationsIndex: 'Foreign Rel.',
-  militaryTrust: 'Military Trust',
-  businessTrust: 'Business Trust',
-  publicTrust: 'Public Trust',
-  internationalTrust: 'Int\'l Trust',
+  militaryTrust: 'Mil. Trust',
+  businessTrust: 'Biz. Trust',
+  publicTrust: 'Pub. Trust',
+  internationalTrust: "Int'l Trust",
   treasuryBudget: 'Treasury',
   nationalDebt: 'Debt',
   gdp: 'GDP',
   gdpGrowthRate: 'GDP Growth',
   population: 'Population',
+  debtCrisis: 'Solvency',
 };
 
 const INVERTED_STATS = new Set([
@@ -119,32 +142,143 @@ const INVERTED_STATS = new Set([
   'nationalDebt',
 ]);
 
-interface IndexStatDef {
-  key: keyof NationState;
+interface StatConfig {
+  key: string;
   name: string;
   icon: string;
   inverted?: boolean;
-  unit: string;
+  format: (state: NationState) => string;
 }
 
-const INDEX_STATS: IndexStatDef[] = [
-  { key: 'approvalRating', name: 'Approval Rating', icon: '🏛️', unit: '/ 100' },
-  { key: 'povertyRate', name: 'Poverty Rate', icon: '📉', inverted: true, unit: '%' },
-  { key: 'unemploymentRate', name: 'Unemployment Rate', icon: '👔', inverted: true, unit: '%' },
-  { key: 'educationIndex', name: 'Education Index', icon: '🎓', unit: '/ 100' },
-  { key: 'healthcareIndex', name: 'Healthcare Index', icon: '🏥', unit: '/ 100' },
-  { key: 'militaryStrength', name: 'Military Strength', icon: '🛡️', unit: '/ 100' },
-  { key: 'corruptionLevel', name: 'Corruption Level', icon: '⚖️', inverted: true, unit: '/ 100' },
-  { key: 'environmentIndex', name: 'Environment Index', icon: '🌿', unit: '/ 100' },
-  { key: 'crimeRate', name: 'Crime Rate', icon: '🚨', inverted: true, unit: '/ 100' },
-  { key: 'foreignRelationsIndex', name: 'Foreign Relations', icon: '🌐', unit: '/ 100' },
+const ECONOMY_STATS: StatConfig[] = [
+  {
+    key: 'gdp',
+    name: 'GDP',
+    icon: '📈',
+    format: (s) => formatCurrency(s.gdp),
+  },
+  {
+    key: 'gdpGrowthRate',
+    name: 'GDP Growth',
+    icon: '📊',
+    format: (s) => `${s.gdpGrowthRate >= 0 ? '+' : ''}${(s.gdpGrowthRate * 100).toFixed(1)}%/yr`,
+  },
+  {
+    key: 'treasuryBudget',
+    name: 'Treasury',
+    icon: '💰',
+    format: (s) => formatCurrency(s.treasuryBudget),
+  },
+  {
+    key: 'nationalDebt',
+    name: 'National Debt',
+    icon: '💳',
+    inverted: true,
+    format: (s) => `${formatCurrency(s.nationalDebt)} (${((s.nationalDebt / s.gdp) * 100).toFixed(0)}%)`,
+  },
+  {
+    key: 'debtCrisis',
+    name: 'Solvency',
+    icon: '⚠️',
+    format: (s) => (s.debtCrisis ? 'CRISIS' : 'Solvent'),
+  },
 ];
 
-const TRUST_DEFS = [
-  { key: 'militaryTrust' as const, name: 'Military Trust', icon: '🎖️', desc: 'Armed forces and defense leadership' },
-  { key: 'businessTrust' as const, name: 'Business Trust', icon: '💼', desc: 'Corporate sector and market confidence' },
-  { key: 'publicTrust' as const, name: 'Public Trust', icon: '👥', desc: 'Civil society and electorate confidence' },
-  { key: 'internationalTrust' as const, name: 'Int\'l Trust', icon: '🌍', desc: 'Foreign allies and credit standing' },
+const FACTION_TRUST_STATS: StatConfig[] = [
+  {
+    key: 'militaryTrust',
+    name: 'Military Trust',
+    icon: '🎖️',
+    format: (s) => s.militaryTrust.toFixed(1),
+  },
+  {
+    key: 'businessTrust',
+    name: 'Business Trust',
+    icon: '💼',
+    format: (s) => s.businessTrust.toFixed(1),
+  },
+  {
+    key: 'publicTrust',
+    name: 'Public Trust',
+    icon: '👥',
+    format: (s) => s.publicTrust.toFixed(1),
+  },
+  {
+    key: 'internationalTrust',
+    name: "Int'l Trust",
+    icon: '🌍',
+    format: (s) => s.internationalTrust.toFixed(1),
+  },
+];
+
+const SOCIETY_STATS: StatConfig[] = [
+  {
+    key: 'approvalRating',
+    name: 'Approval Rating',
+    icon: '🏛️',
+    format: (s) => `${s.approvalRating.toFixed(1)}%`,
+  },
+  {
+    key: 'povertyRate',
+    name: 'Poverty Rate',
+    icon: '📉',
+    inverted: true,
+    format: (s) => `${s.povertyRate.toFixed(1)}%`,
+  },
+  {
+    key: 'unemploymentRate',
+    name: 'Unemployment',
+    icon: '👔',
+    inverted: true,
+    format: (s) => `${s.unemploymentRate.toFixed(1)}%`,
+  },
+  {
+    key: 'crimeRate',
+    name: 'Crime Rate',
+    icon: '🚨',
+    inverted: true,
+    format: (s) => `${s.crimeRate.toFixed(1)}`,
+  },
+  {
+    key: 'corruptionLevel',
+    name: 'Corruption',
+    icon: '⚖️',
+    inverted: true,
+    format: (s) => `${s.corruptionLevel.toFixed(1)}`,
+  },
+];
+
+const INFRASTRUCTURE_STATS: StatConfig[] = [
+  {
+    key: 'educationIndex',
+    name: 'Education Index',
+    icon: '🎓',
+    format: (s) => s.educationIndex.toFixed(1),
+  },
+  {
+    key: 'healthcareIndex',
+    name: 'Healthcare Index',
+    icon: '🏥',
+    format: (s) => s.healthcareIndex.toFixed(1),
+  },
+  {
+    key: 'militaryStrength',
+    name: 'Military Strength',
+    icon: '🛡️',
+    format: (s) => s.militaryStrength.toFixed(1),
+  },
+  {
+    key: 'environmentIndex',
+    name: 'Environment',
+    icon: '🌿',
+    format: (s) => s.environmentIndex.toFixed(1),
+  },
+  {
+    key: 'foreignRelationsIndex',
+    name: 'Foreign Relations',
+    icon: '🌐',
+    format: (s) => s.foreignRelationsIndex.toFixed(1),
+  },
 ];
 
 function formatCurrency(amount: number): string {
@@ -229,203 +363,199 @@ function parseEffectFormula(effectStr: string): ParsedHint | null {
   };
 }
 
+function getDeltaBadgeInfo(statKey: string, isInverted: boolean = false): { badgeText: string; badgeCls: string; deltas: StatDelta[] } {
+  const deltas = state.recentDeltas.filter((d) => d.stat === statKey);
+  const netDelta = deltas.reduce((sum, d) => sum + d.delta, 0);
+
+  let badgeText = '● 0.0';
+  let badgeCls = 'delta-neutral';
+
+  if (statKey === 'debtCrisis') {
+    if (state.debtCrisis) {
+      badgeText = 'CRISIS';
+      badgeCls = 'delta-crimson';
+    } else {
+      badgeText = 'STABLE';
+      badgeCls = 'delta-teal';
+    }
+  } else if (statKey === 'gdp' || statKey === 'treasuryBudget' || statKey === 'nationalDebt') {
+    if (Math.abs(netDelta) >= 100_000) {
+      const isPos = netDelta > 0;
+      const isFav = isInverted ? !isPos : isPos;
+      const abs = Math.abs(netDelta);
+      const sign = isPos ? '+' : '-';
+      let valStr = `${sign}$${(abs / 1_000_000_000).toFixed(1)}B`;
+      if (abs < 1_000_000_000) valStr = `${sign}$${(abs / 1_000_000).toFixed(0)}M`;
+      badgeText = isPos ? `▲ ${valStr}` : `▼ ${valStr}`;
+      badgeCls = isFav ? 'delta-teal' : 'delta-crimson';
+    }
+  } else if (statKey === 'gdpGrowthRate') {
+    const rateDiff = netDelta * 100;
+    if (Math.abs(rateDiff) >= 0.04) {
+      const isPos = rateDiff > 0;
+      const isFav = rateDiff > 0;
+      const sign = isPos ? '+' : '';
+      badgeText = isPos ? `▲ ${sign}${rateDiff.toFixed(1)}%` : `▼ ${rateDiff.toFixed(1)}%`;
+      badgeCls = isFav ? 'delta-teal' : 'delta-crimson';
+    }
+  } else {
+    if (netDelta > 0.04) {
+      badgeText = `▲ +${netDelta.toFixed(1)}`;
+      badgeCls = isInverted ? 'delta-crimson' : 'delta-teal';
+    } else if (netDelta < -0.04) {
+      badgeText = `▼ ${netDelta.toFixed(1)}`;
+      badgeCls = isInverted ? 'delta-teal' : 'delta-crimson';
+    }
+  }
+
+  return { badgeText, badgeCls, deltas };
+}
+
+function renderStatRows(container: HTMLElement, statConfigs: StatConfig[], isPanelLeft: boolean) {
+  if (!container) return;
+
+  container.innerHTML = statConfigs
+    .map((cfg) => {
+      const valText = cfg.format(state);
+      const { badgeText, badgeCls } = getDeltaBadgeInfo(cfg.key, cfg.inverted);
+      const isAlert =
+        (cfg.key === 'debtCrisis' && state.debtCrisis) ||
+        (cfg.key === 'treasuryBudget' && state.treasuryBudget < 0) ||
+        (cfg.key === 'nationalDebt' && state.nationalDebt / state.gdp > 0.8) ||
+        (cfg.key.includes('Trust') && Number(state[cfg.key as keyof NationState]) < 30);
+
+      return `
+        <div class="stat-compact-row ${isAlert ? 'alert-active' : ''}" data-stat-key="${cfg.key}" data-panel="${isPanelLeft ? 'left' : 'right'}">
+          <div class="stat-compact-left">
+            <span class="stat-compact-icon">${cfg.icon}</span>
+            <span class="stat-compact-name">${cfg.name}</span>
+          </div>
+          <div class="stat-compact-right">
+            <span class="stat-compact-val" style="${isAlert ? 'color: var(--cabinet-crimson); font-weight: bold;' : ''}">${valText}</span>
+            <span class="delta-badge ${badgeCls}">${badgeText}</span>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function showCausalTooltip(targetEl: HTMLElement) {
+  const statKey = targetEl.getAttribute('data-stat-key');
+  if (!statKey || !statTooltipFloater) return;
+
+  const statName = STAT_NAME_MAP[statKey] || statKey;
+  const isInverted = INVERTED_STATS.has(statKey);
+  const { deltas } = getDeltaBadgeInfo(statKey, isInverted);
+
+  let currentValText = '';
+  if (statKey in state) {
+    const rawVal = state[statKey as keyof NationState];
+    if (typeof rawVal === 'number') {
+      if (statKey === 'gdp' || statKey === 'treasuryBudget' || statKey === 'nationalDebt') {
+        currentValText = formatCurrency(rawVal);
+      } else if (statKey === 'gdpGrowthRate') {
+        currentValText = `${rawVal >= 0 ? '+' : ''}${(rawVal * 100).toFixed(2)}%/yr`;
+      } else if (statKey === 'approvalRating' || statKey === 'povertyRate' || statKey === 'unemploymentRate') {
+        currentValText = `${rawVal.toFixed(1)}%`;
+      } else {
+        currentValText = rawVal.toFixed(1);
+      }
+    } else if (typeof rawVal === 'boolean') {
+      currentValText = rawVal ? 'Active Crisis' : 'Solvent';
+    }
+  }
+
+  let causalHtml = '';
+  if (deltas.length === 0) {
+    causalHtml = `<div class="floater-causal-item"><span class="causal-source">● Stable (No recent adjustments)</span></div>`;
+  } else {
+    causalHtml = deltas
+      .map((d) => {
+        const isPos = d.delta > 0;
+        const isFavorable = isInverted ? !isPos : isPos;
+        const deltaCls = isFavorable ? 'causal-delta-pos' : 'causal-delta-neg';
+        const sign = isPos ? '+' : '';
+        let deltaFormatted = `${sign}${d.delta.toFixed(1)}`;
+        if (statKey === 'gdp' || statKey === 'treasuryBudget' || statKey === 'nationalDebt') {
+          deltaFormatted = `${sign}${formatCurrency(Math.abs(d.delta))}`;
+        } else if (statKey === 'gdpGrowthRate') {
+          deltaFormatted = `${sign}${(Math.abs(d.delta) * 100).toFixed(1)}%`;
+        }
+        return `
+          <div class="floater-causal-item">
+            <span class="${deltaCls}">${deltaFormatted}</span>
+            <span class="causal-source">from ${d.source}</span>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  statTooltipFloater.innerHTML = `
+    <div class="floater-header">
+      <span>${statName}</span>
+      <span>${currentValText}</span>
+    </div>
+    <div class="floater-causal-list">
+      ${causalHtml}
+    </div>
+  `;
+
+  const rect = targetEl.getBoundingClientRect();
+  const panelType = targetEl.getAttribute('data-panel');
+  const floaterWidth = 240;
+  const floaterHeight = statTooltipFloater.offsetHeight || 100;
+
+  let x = 0;
+  if (panelType === 'left') {
+    x = rect.right + 10;
+  } else {
+    x = rect.left - floaterWidth - 10;
+  }
+
+  let y = rect.top + rect.height / 2 - floaterHeight / 2;
+  const maxY = window.innerHeight - floaterHeight - 16;
+  if (y < 12) y = 12;
+  if (y > maxY) y = maxY;
+
+  statTooltipFloater.style.left = `${Math.max(10, x)}px`;
+  statTooltipFloater.style.top = `${y}px`;
+  statTooltipFloater.classList.add('visible');
+}
+
+function hideCausalTooltip() {
+  if (statTooltipFloater) {
+    statTooltipFloater.classList.remove('visible');
+  }
+}
+
+function attachTooltipEventListeners() {
+  const rows = document.querySelectorAll('.stat-compact-row');
+  rows.forEach((row) => {
+    row.addEventListener('mouseenter', () => showCausalTooltip(row as HTMLElement));
+    row.addEventListener('mouseleave', hideCausalTooltip);
+    row.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showCausalTooltip(row as HTMLElement);
+    });
+  });
+}
+
 function renderStats() {
-  // 1. Render Macroeconomic Overview Grid
-  if (macroKpiGrid) {
-    const debtToGdp = ((state.nationalDebt / state.gdp) * 100).toFixed(1);
-    const isDebtDanger = (state.nationalDebt / state.gdp) > 0.8;
-    const growthPositive = state.gdpGrowthRate >= 0;
+  // 1. Left Panel: Economy & Faction Trust
+  renderStatRows(economyStatsList, ECONOMY_STATS, true);
+  renderStatRows(trustStatsList, FACTION_TRUST_STATS, true);
 
-    macroKpiGrid.innerHTML = `
-      <div class="macro-tile">
-        <span class="macro-label">Population</span>
-        <span class="macro-value">${(state.population / 1_000_000).toFixed(2)}M</span>
-        <span class="macro-sub">Citizens</span>
-      </div>
-      <div class="macro-tile">
-        <span class="macro-label">GDP</span>
-        <span class="macro-value">${formatCurrency(state.gdp)}</span>
-        <span class="macro-sub" style="color: ${growthPositive ? 'var(--stability-teal)' : 'var(--cabinet-crimson)'}; font-weight: 700;">
-          ${growthPositive ? '▲ +' : '▼ '}${(state.gdpGrowthRate * 100).toFixed(2)}%/yr
-        </span>
-      </div>
-      <div class="macro-tile ${state.treasuryBudget < 0 ? 'alert-active' : ''}">
-        <span class="macro-label">Treasury</span>
-        <span class="macro-value" style="color: ${state.treasuryBudget < 0 ? 'var(--cabinet-crimson)' : 'var(--federal-navy)'};">
-          ${formatCurrency(state.treasuryBudget)}
-        </span>
-        <span class="macro-sub">Liquid Reserve</span>
-      </div>
-      <div class="macro-tile ${isDebtDanger ? 'alert-active' : ''}">
-        <span class="macro-label">National Debt</span>
-        <span class="macro-value" style="color: ${isDebtDanger ? 'var(--cabinet-crimson)' : 'var(--federal-navy)'};">
-          ${formatCurrency(state.nationalDebt)}
-        </span>
-        <span class="macro-sub">${debtToGdp}% of GDP</span>
-      </div>
-      <div class="macro-tile ${state.debtCrisis ? 'alert-active' : ''}">
-        <span class="macro-label">Debt Crisis</span>
-        <span class="macro-value" style="color: ${state.debtCrisis ? 'var(--cabinet-crimson)' : 'var(--stability-teal)'};">
-          ${state.debtCrisis ? 'ACTIVE CRISIS' : 'Solvent'}
-        </span>
-        <span class="macro-sub">${state.debtCrisis ? 'Default Warning' : 'Stable Rating'}</span>
-      </div>
-    `;
-  }
+  // 2. Right Panel: Society & Infrastructure
+  renderStatRows(societyStatsList, SOCIETY_STATS, false);
+  renderStatRows(infrastructureStatsList, INFRASTRUCTURE_STATS, false);
 
-  // 2. Render Policy Index Gauges with Trend Indicators and Causal Breakdown
-  if (statsList) {
-    statsList.innerHTML = INDEX_STATS.map((statDef) => {
-      const val = Number(state[statDef.key]) || 0;
-      const clampedVal = Math.max(0, Math.min(100, val));
-      const deltas = state.recentDeltas.filter((d) => d.stat === statDef.key);
-      const netDelta = deltas.reduce((sum, d) => sum + d.delta, 0);
-
-      // Compute Trend Badge
-      let badgeText = '● 0.0';
-      let badgeCls = 'delta-neutral';
-      if (netDelta > 0.04) {
-        badgeText = `▲ +${netDelta.toFixed(1)}`;
-        badgeCls = statDef.inverted ? 'delta-crimson' : 'delta-teal';
-      } else if (netDelta < -0.04) {
-        badgeText = `▼ ${netDelta.toFixed(1)}`;
-        badgeCls = statDef.inverted ? 'delta-teal' : 'delta-crimson';
-      }
-
-      // Compute Progress Bar Fill Color
-      let barFillClass = 'bar-fill-teal';
-      if (statDef.inverted) {
-        if (val < 25) barFillClass = 'bar-fill-teal';
-        else if (val > 45) barFillClass = 'bar-fill-crimson';
-        else barFillClass = 'bar-fill-amber';
-      } else {
-        if (val >= 50) barFillClass = 'bar-fill-teal';
-        else if (val < 30) barFillClass = 'bar-fill-crimson';
-        else barFillClass = 'bar-fill-navy';
-      }
-
-      // Compute Causal Breakdown HTML
-      let breakdownHtml = '';
-      if (deltas.length === 0) {
-        breakdownHtml = `<div class="causal-item"><span class="causal-source">● Stable (No net adjustments this turn)</span></div>`;
-      } else {
-        breakdownHtml = deltas
-          .map((d) => {
-            const isPos = d.delta > 0;
-            const isFavorable = statDef.inverted ? !isPos : isPos;
-            const deltaCls = isFavorable ? 'causal-delta-pos' : 'causal-delta-neg';
-            const sign = isPos ? '+' : '';
-            return `
-              <div class="causal-item">
-                <span class="${deltaCls}">${sign}${d.delta.toFixed(1)}</span>
-                <span class="causal-source">from ${d.source}</span>
-              </div>
-            `;
-          })
-          .join('');
-      }
-
-      const displayVal = statDef.unit === '%' ? `${val.toFixed(1)}%` : `${val.toFixed(1)} / 100`;
-
-      return `
-        <div class="stat-row">
-          <div class="stat-main">
-            <div class="stat-label-group">
-              <span class="stat-icon">${statDef.icon}</span>
-              <span class="stat-name">${statDef.name}</span>
-            </div>
-            <div class="stat-value-group">
-              <span class="stat-val-text">${displayVal}</span>
-              <span class="delta-badge ${badgeCls}">${badgeText}</span>
-            </div>
-          </div>
-          <div class="stat-bar-track">
-            <div class="stat-bar-fill ${barFillClass}" style="width: ${clampedVal}%;"></div>
-          </div>
-          <details class="causal-details">
-            <summary class="causal-summary">🔍 Breakdown (${deltas.length} delta${deltas.length === 1 ? '' : 's'})</summary>
-            <div class="causal-list">
-              ${breakdownHtml}
-            </div>
-          </details>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // 3. Render Faction Trust Meters with Gauges and Tooltip/Causal Details
-  if (trustStatsList) {
-    trustStatsList.innerHTML = TRUST_DEFS.map((def) => {
-      const val = Number(state[def.key]) || 0;
-      const clampedVal = Math.max(0, Math.min(100, val));
-      const isCritical = val < 30;
-      const deltas = state.recentDeltas.filter((d) => d.stat === def.key);
-      const netDelta = deltas.reduce((sum, d) => sum + d.delta, 0);
-
-      let badgeText = '● 0.0';
-      let badgeCls = 'delta-neutral';
-      if (netDelta > 0.04) {
-        badgeText = `▲ +${netDelta.toFixed(1)}`;
-        badgeCls = 'delta-teal';
-      } else if (netDelta < -0.04) {
-        badgeText = `▼ ${netDelta.toFixed(1)}`;
-        badgeCls = 'delta-crimson';
-      }
-
-      let barFillClass = 'bar-fill-teal';
-      if (val < 30) barFillClass = 'bar-fill-crimson';
-      else if (val < 50) barFillClass = 'bar-fill-amber';
-
-      let breakdownHtml = '';
-      if (deltas.length === 0) {
-        breakdownHtml = `<div class="causal-item"><span class="causal-source">● Stable (No faction shifts)</span></div>`;
-      } else {
-        breakdownHtml = deltas
-          .map((d) => {
-            const isPos = d.delta > 0;
-            const deltaCls = isPos ? 'causal-delta-pos' : 'causal-delta-neg';
-            const sign = isPos ? '+' : '';
-            return `
-              <div class="causal-item">
-                <span class="${deltaCls}">${sign}${d.delta.toFixed(1)}</span>
-                <span class="causal-source">from ${d.source}</span>
-              </div>
-            `;
-          })
-          .join('');
-      }
-
-      return `
-        <div class="trust-card ${isCritical ? 'trust-warning' : ''}" title="${def.desc}">
-          <div class="trust-header">
-            <div class="trust-name-group">
-              <span class="stat-icon">${def.icon}</span>
-              <span class="trust-name">${def.name}</span>
-            </div>
-            <div class="stat-value-group">
-              <span class="stat-val-text" style="${isCritical ? 'color: var(--cabinet-crimson); font-weight: bold;' : ''}">${val.toFixed(1)}</span>
-              <span class="delta-badge ${badgeCls}">${badgeText}</span>
-            </div>
-          </div>
-          <div class="stat-bar-track">
-            <div class="stat-bar-fill ${barFillClass}" style="width: ${clampedVal}%;"></div>
-          </div>
-          <details class="causal-details" style="margin-top: 5px;">
-            <summary class="causal-summary">🔍 History (${deltas.length})</summary>
-            <div class="causal-list">
-              ${breakdownHtml}
-            </div>
-          </details>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // 4. Render Pending Delayed Consequences with Relative Timing and Targeted Stats
+  // 3. Right Panel: Pending Delayed Consequences
   if (pendingEffectsList) {
     pendingEffectsList.innerHTML = '';
     if (state.pendingEffects.length === 0) {
-      pendingEffectsList.innerHTML = '<div class="empty-placeholder">No pending consequences scheduled for future turns.</div>';
+      pendingEffectsList.innerHTML = '<div class="empty-placeholder">No consequences scheduled for future turns.</div>';
     } else {
       state.pendingEffects.forEach((effect) => {
         const turnsRemaining = effect.targetTurn - state.turn;
@@ -433,8 +563,8 @@ function renderStats() {
           turnsRemaining <= 0
             ? 'Resolving this turn'
             : turnsRemaining === 1
-            ? `In 1 turn (Turn ${effect.targetTurn})`
-            : `In ${turnsRemaining} turns (Turn ${effect.targetTurn})`;
+            ? `In 1 turn (T${effect.targetTurn})`
+            : `In ${turnsRemaining} turns (T${effect.targetTurn})`;
 
         const modifiedStats: string[] = [];
         for (const eff of effect.effects) {
@@ -450,21 +580,24 @@ function renderStats() {
           modifiedStats.push('Follow-up Crisis');
         }
 
-        const tagText = modifiedStats.length > 0 ? `[Pending: ${modifiedStats.join(', ')}]` : '[Pending Outcome]';
+        const tagText = modifiedStats.length > 0 ? `[${modifiedStats.join(', ')}]` : '[Pending Outcome]';
 
         const itemEl = document.createElement('div');
-        itemEl.className = 'pending-item-card';
+        itemEl.className = 'pending-compact-card';
         itemEl.innerHTML = `
-          <div class="pending-item-header">
-            <span class="pending-timing-badge">⏱️ ${timingText}</span>
-            <span class="pending-stats-tag">${tagText}</span>
+          <div class="pending-compact-header">
+            <span>⏱️ ${timingText}</span>
+            <span style="font-family: var(--font-mono); font-size: 10px;">${tagText}</span>
           </div>
-          <div class="pending-item-desc">${effect.description}</div>
+          <div class="pending-compact-desc">${effect.description}</div>
         `;
         pendingEffectsList.appendChild(itemEl);
       });
     }
   }
+
+  // Attach hover and click listeners for the causal tooltips
+  attachTooltipEventListeners();
 }
 
 function renderDecision() {
@@ -482,7 +615,6 @@ function renderDecision() {
     return;
   }
 
-  // Preserve existing decision if still valid, otherwise select new
   const dec = (currentDecision && availableDecisions.some((d) => d.id === currentDecision?.id))
     ? currentDecision
     : availableDecisions[Math.floor(Math.random() * availableDecisions.length)];
@@ -491,7 +623,6 @@ function renderDecision() {
   decisionTitle.textContent = dec.title;
   decisionDesc.textContent = dec.description;
 
-  // Header badges: Dispatch reference & Crisis vs Recurring badge
   if (decisionRefBadge) {
     decisionRefBadge.textContent = `REF: #DEC-${dec.id.slice(0, 10).toUpperCase()}`;
   }
@@ -559,10 +690,32 @@ function renderDecision() {
       }
     }
 
-    const hintBadgesHtml =
-      hints.length > 0
-        ? `<div class="option-hints-row">${hints.map((h) => `<span class="hint-badge ${h.className}">${h.text}</span>`).join('')}</div>`
-        : '';
+    // Condense to top 2-3 significant effects, adding a [+] hover tooltip indicator for other effects
+    let hintBadgesHtml = '';
+    const MAX_VISIBLE_HINTS = 2;
+
+    if (hints.length > 0) {
+      if (hints.length <= MAX_VISIBLE_HINTS + 1) {
+        hintBadgesHtml = `<div class="option-hints-row">${hints.map((h) => `<span class="hint-badge ${h.className}">${h.text}</span>`).join('')}</div>`;
+      } else {
+        const visibleHints = hints.slice(0, MAX_VISIBLE_HINTS);
+        const overflowHints = hints.slice(MAX_VISIBLE_HINTS);
+
+        const visibleHtml = visibleHints.map((h) => `<span class="hint-badge ${h.className}">${h.text}</span>`).join('');
+        const overflowBadges = overflowHints.map((h) => `<span class="hint-badge ${h.className}">${h.text}</span>`).join('');
+
+        const overflowHtml = `
+          <div class="hint-more-wrapper">
+            <span class="hint-badge hint-more-badge">[+${overflowHints.length} more]</span>
+            <div class="hint-more-tooltip">
+              ${overflowBadges}
+            </div>
+          </div>
+        `;
+
+        hintBadgesHtml = `<div class="option-hints-row">${visibleHtml}${overflowHtml}</div>`;
+      }
+    }
 
     btn.innerHTML = `
       <div class="option-title-row">
@@ -585,6 +738,26 @@ interface LogEntryGroup {
   }[];
 }
 
+function formatLogStatValue(stat: string, val: number): string {
+  if (stat === 'treasuryBudget' || stat === 'nationalDebt' || stat === 'gdp') {
+    return formatCurrency(val);
+  }
+  if (stat === 'gdpGrowthRate') {
+    return `${(val * 100).toFixed(1)}%`;
+  }
+  if (stat === 'povertyRate' || stat === 'unemploymentRate' || stat === 'approvalRating') {
+    return `${val.toFixed(1)}%`;
+  }
+  if (stat === 'population') {
+    const abs = Math.abs(val);
+    if (abs >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(2)}B`;
+    if (abs >= 1_000_000) return `${(val / 1_000_000).toFixed(2)}M`;
+    if (abs >= 1_000) return `${(val / 1_000).toFixed(1)}k`;
+    return `${val.toFixed(0)}`;
+  }
+  return val.toFixed(1);
+}
+
 function parseLogLine(line: string): { category: 'DECISION' | 'EVENT' | 'PENDING' | 'DRIFT' | 'SYSTEM'; text: string } {
   const trimmed = line.trim();
   if (trimmed.startsWith('Action Chosen:') || trimmed.startsWith('Decision chosen:')) {
@@ -599,8 +772,19 @@ function parseLogLine(line: string): { category: 'DECISION' | 'EVENT' | 'PENDING
   if (trimmed.startsWith('Resolving pending effect:')) {
     return { category: 'PENDING', text: trimmed.replace(/^Resolving pending effect:\s*/, 'Delayed Resolution: ') };
   }
-  if (trimmed.startsWith('[Engine]') || trimmed.startsWith('    [Engine]')) {
-    return { category: 'DRIFT', text: trimmed.replace(/^\s*\[Engine\]\s*/, '') };
+  if (trimmed.startsWith('[Engine]')) {
+    const engineContent = trimmed.replace(/^\[Engine\]\s*/, '');
+    const match = engineContent.match(/^([a-zA-Z]+) changed from ([\d.-]+) to ([\d.-]+)$/);
+    if (match) {
+      const stat = match[1];
+      const fromVal = parseFloat(match[2]);
+      const toVal = parseFloat(match[3]);
+      const name = SHORT_STAT_NAME_MAP[stat] || STAT_NAME_MAP[stat] || stat;
+      const formattedFrom = formatLogStatValue(stat, fromVal);
+      const formattedTo = formatLogStatValue(stat, toVal);
+      return { category: 'DRIFT', text: `${name} changed from ${formattedFrom} to ${formattedTo}` };
+    }
+    return { category: 'DRIFT', text: engineContent };
   }
   if (trimmed.startsWith('[Save/Load]')) {
     return { category: 'SYSTEM', text: trimmed.replace(/^\[Save\/Load\]\s*/, 'Archive System: ') };
@@ -613,7 +797,8 @@ function parseLogLine(line: string): { category: 'DECISION' | 'EVENT' | 'PENDING
 
 function renderLogs() {
   if (turnLogsHistory.length === 0) {
-    logPanel.innerHTML = '<div class="empty-placeholder" style="color: #94A3B8;">No briefing dispatches recorded yet.</div>';
+    if (logPreview) logPreview.innerHTML = '<span style="color: #94A3B8; font-style: italic;">No briefing dispatches recorded yet.</span>';
+    if (logPanel) logPanel.innerHTML = '<div class="empty-placeholder" style="color: #94A3B8; padding: 12px 0;">No briefing dispatches recorded yet.</div>';
     return;
   }
 
@@ -651,12 +836,17 @@ function renderLogs() {
     groups.push(currentGroup);
   }
 
-  // Render newest turn first
-  logPanel.innerHTML = groups
-    .slice()
-    .reverse()
-    .map((group) => {
-      const entriesHtml = group.entries
+  // 1. Render Preview bar (1-2 most recent entries)
+  if (logPreview) {
+    const allEntries: { category: 'DECISION' | 'EVENT' | 'PENDING' | 'DRIFT' | 'SYSTEM'; text: string }[] = [];
+    for (const g of groups) {
+      allEntries.push(...g.entries);
+    }
+    const recent = allEntries.slice(-2).reverse();
+    if (recent.length === 0) {
+      logPreview.innerHTML = '<span style="color: #94A3B8; font-style: italic;">No briefing dispatches recorded yet.</span>';
+    } else {
+      logPreview.innerHTML = recent
         .map((entry) => {
           let flagCls = 'flag-system';
           if (entry.category === 'DECISION') flagCls = 'flag-decision';
@@ -664,23 +854,54 @@ function renderLogs() {
           else if (entry.category === 'PENDING') flagCls = 'flag-pending';
           else if (entry.category === 'DRIFT') flagCls = 'flag-drift';
 
-          return `
-            <div class="log-entry-row">
-              <span class="log-flag ${flagCls}">${entry.category}</span>
-              <span class="log-text">${entry.text}</span>
-            </div>
-          `;
+          return `<span style="display: inline-flex; align-items: center; gap: 5px; margin-right: 12px;"><span class="log-flag ${flagCls}">${entry.category}</span> ${entry.text}</span>`;
         })
-        .join('');
+        .join(' ');
+    }
+  }
 
-      return `
-        <div class="log-timeline-turn">
-          <div class="log-turn-header">⚡ ${group.title}</div>
-          ${entriesHtml}
-        </div>
-      `;
-    })
-    .join('');
+  // 2. Render Full scrollable chronological list in logPanel (newest turn at top)
+  if (logPanel) {
+    logPanel.innerHTML = groups
+      .slice()
+      .reverse()
+      .map((group) => {
+        const entriesHtml = group.entries
+          .map((entry) => {
+            let flagCls = 'flag-system';
+            if (entry.category === 'DECISION') flagCls = 'flag-decision';
+            else if (entry.category === 'EVENT') flagCls = 'flag-event';
+            else if (entry.category === 'PENDING') flagCls = 'flag-pending';
+            else if (entry.category === 'DRIFT') flagCls = 'flag-drift';
+
+            return `
+              <div class="log-entry-row">
+                <span class="log-flag ${flagCls}">${entry.category}</span>
+                <span class="log-text">${entry.text}</span>
+              </div>
+            `;
+          })
+          .join('');
+
+        return `
+          <div class="log-timeline-turn">
+            <div class="log-turn-header">⚡ ${group.title}</div>
+            ${entriesHtml}
+          </div>
+        `;
+      })
+      .join('');
+  }
+}
+
+function toggleLogPanel() {
+  isLogExpanded = !isLogExpanded;
+  if (bottomLogStrip) {
+    bottomLogStrip.classList.toggle('expanded', isLogExpanded);
+  }
+  if (toggleLogBtn) {
+    toggleLogBtn.textContent = isLogExpanded ? '▼ Collapse Feed' : '▲ Expand Feed';
+  }
 }
 
 function render() {
@@ -827,7 +1048,7 @@ function updateSaveControls() {
 function handleTurn(chosenOption?: DecisionOption, decisionId?: string) {
   const previousTurn = state.turn;
   state = resolveTurn(state, chosenOption, decisionId);
-  currentDecision = undefined; // Trigger new decision selection for next turn
+  currentDecision = undefined;
 
   turnLogsHistory.push(`\n=== Turn ${previousTurn} Resolution ===`);
   if (chosenOption) {
@@ -842,9 +1063,8 @@ function handleTurn(chosenOption?: DecisionOption, decisionId?: string) {
     }
   }
 
+  hideCausalTooltip();
   render();
-
-  // Auto-save state at the end of every resolved turn
   saveGame();
 }
 
@@ -862,6 +1082,7 @@ function resetGameToScenario(scenarioKey: ScenarioKey) {
   turnLogsHistory.push(`=== Scenario Selected: ${scenarioName} ===`);
   turnLogsHistory.push(`Turn 1 Initialized.`);
 
+  hideCausalTooltip();
   render();
   saveGame();
 }
@@ -903,6 +1124,7 @@ function runAutoplayLoop() {
   }
 }
 
+// Event Listeners
 autoplayBtn.addEventListener('click', () => {
   if (isAutoplayRunning) {
     stopAutoplay();
@@ -949,6 +1171,51 @@ deleteSaveBtn.addEventListener('click', () => {
   renderLogs();
 });
 
+// Past Runs Modal
+pastRunsBtn.addEventListener('click', () => {
+  renderHistoryTable();
+  historyModal.style.display = 'flex';
+});
+
+closeHistoryBtn.addEventListener('click', () => {
+  historyModal.style.display = 'none';
+});
+
+historyModal.addEventListener('click', (e) => {
+  if (e.target === historyModal) {
+    historyModal.style.display = 'none';
+  }
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    historyModal.style.display = 'none';
+    hideCausalTooltip();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!(e.target as HTMLElement).closest('.stat-compact-row')) {
+    hideCausalTooltip();
+  }
+});
+
+clearHistoryBtn.addEventListener('click', () => {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistoryTable();
+});
+
+// Bottom Teletype Strip toggle
+logStripBar.addEventListener('click', (e) => {
+  if ((e.target as HTMLElement).tagName !== 'BUTTON') {
+    toggleLogPanel();
+  }
+});
+toggleLogBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleLogPanel();
+});
+
 // Next turn & restart handlers
 nextTurnBtn.addEventListener('click', () => {
   if (isAutoplayRunning) stopAutoplay();
@@ -964,12 +1231,12 @@ modalDeleteSaveBtn.addEventListener('click', () => {
   resetGameToScenario(currentScenario);
 });
 
-clearHistoryBtn.addEventListener('click', () => {
-  localStorage.removeItem(HISTORY_KEY);
-  renderHistoryTable();
-});
-
 // Startup Initialization
+const officeBg = document.getElementById('office-bg-container');
+if (officeBg) {
+  officeBg.innerHTML = getOfficeBgSvg();
+}
+
 updateSaveControls();
 renderHistoryTable();
 
