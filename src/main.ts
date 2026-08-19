@@ -41,6 +41,15 @@ const loadBtn = document.getElementById('load-btn') as HTMLButtonElement;
 const deleteSaveBtn = document.getElementById('delete-save-btn') as HTMLButtonElement;
 const pastRunsBtn = document.getElementById('past-runs-btn') as HTMLButtonElement;
 
+// Mobile Header Actions Drawer elements
+const mobileActionsToggleBtn = document.getElementById('mobile-actions-toggle-btn') as HTMLButtonElement | null;
+const mobileActionsDrawer = document.getElementById('mobile-actions-drawer') as HTMLElement | null;
+const mobileScenarioSelect = document.getElementById('mobile-scenario-select') as HTMLSelectElement | null;
+const mobileSaveBtn = document.getElementById('mobile-save-btn') as HTMLButtonElement | null;
+const mobileLoadBtn = document.getElementById('mobile-load-btn') as HTMLButtonElement | null;
+const mobileDeleteSaveBtn = document.getElementById('mobile-delete-save-btn') as HTMLButtonElement | null;
+const mobilePastRunsBtn = document.getElementById('mobile-past-runs-btn') as HTMLButtonElement | null;
+
 // Left panel stat list elements
 const economyStatsList = document.getElementById('economy-stats-list') as HTMLElement;
 const trustStatsList = document.getElementById('trust-stats-list') as HTMLElement;
@@ -145,6 +154,10 @@ function setMobileTab(tab: MobileTab) {
       if (bottomLogStrip) bottomLogStrip.classList.add('expanded');
       if (toggleLogBtn) toggleLogBtn.textContent = '▼ Collapse Feed';
     }
+  }
+
+  if (mobileActionsDrawer) {
+    mobileActionsDrawer.classList.remove('open');
   }
 }
 
@@ -1088,6 +1101,7 @@ function loadGame(): boolean {
     if (saveData.scenario && scenarios[saveData.scenario as ScenarioKey]) {
       currentScenario = saveData.scenario as ScenarioKey;
       scenarioSelect.value = currentScenario;
+      if (mobileScenarioSelect) mobileScenarioSelect.value = currentScenario;
     }
     if (typeof saveData.decisionIndex === 'number' && saveData.decisionIndex >= 0 && decisions[saveData.decisionIndex]) {
       currentDecision = decisions[saveData.decisionIndex];
@@ -1159,6 +1173,8 @@ function updateSaveControls() {
   resumeBtn.style.display = hasSave ? 'inline-flex' : 'none';
   loadBtn.disabled = !hasSave;
   deleteSaveBtn.disabled = !hasSave;
+  if (mobileLoadBtn) mobileLoadBtn.disabled = !hasSave;
+  if (mobileDeleteSaveBtn) mobileDeleteSaveBtn.disabled = !hasSave;
   updateHomeContinueButton();
 }
 
@@ -1189,6 +1205,7 @@ function resetGameToScenario(scenarioKey: ScenarioKey) {
   if (isAutoplayRunning) stopAutoplay();
   currentScenario = scenarioKey;
   scenarioSelect.value = scenarioKey;
+  if (mobileScenarioSelect) mobileScenarioSelect.value = scenarioKey;
   state = getScenarioInitialState(scenarioKey);
   currentDecision = undefined;
   historyRecorded = false;
@@ -1257,8 +1274,78 @@ autoplayBtn.addEventListener('click', () => {
 // Scenario Selector
 scenarioSelect.addEventListener('change', () => {
   const selected = scenarioSelect.value as ScenarioKey;
+  if (mobileScenarioSelect) mobileScenarioSelect.value = selected;
   resetGameToScenario(selected);
 });
+
+// Mobile Actions Toggle & Dropdown Drawer
+if (mobileActionsToggleBtn && mobileActionsDrawer) {
+  mobileActionsToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = mobileActionsDrawer.classList.toggle('open');
+    if (isOpen && mobileScenarioSelect) {
+      mobileScenarioSelect.value = currentScenario;
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (mobileActionsDrawer.classList.contains('open')) {
+      const target = e.target as HTMLElement;
+      if (!mobileActionsDrawer.contains(target) && target !== mobileActionsToggleBtn && !mobileActionsToggleBtn.contains(target)) {
+        mobileActionsDrawer.classList.remove('open');
+      }
+    }
+  });
+}
+
+if (mobileScenarioSelect) {
+  mobileScenarioSelect.addEventListener('change', () => {
+    const selected = mobileScenarioSelect.value as ScenarioKey;
+    scenarioSelect.value = selected;
+    resetGameToScenario(selected);
+    if (mobileActionsDrawer) mobileActionsDrawer.classList.remove('open');
+  });
+}
+
+if (mobileSaveBtn) {
+  mobileSaveBtn.addEventListener('click', () => {
+    saveGame();
+    turnLogsHistory.push('[Save/Load] Game saved successfully.');
+    renderLogs();
+    updateSaveControls();
+    if (mobileActionsDrawer) mobileActionsDrawer.classList.remove('open');
+  });
+}
+
+if (mobileLoadBtn) {
+  mobileLoadBtn.addEventListener('click', () => {
+    if (isAutoplayRunning) stopAutoplay();
+    if (loadGame()) {
+      turnLogsHistory.push('[Save/Load] Game loaded successfully.');
+      renderLogs();
+      updateSaveControls();
+    }
+    if (mobileActionsDrawer) mobileActionsDrawer.classList.remove('open');
+  });
+}
+
+if (mobileDeleteSaveBtn) {
+  mobileDeleteSaveBtn.addEventListener('click', () => {
+    deleteSave();
+    turnLogsHistory.push('[Save/Load] Saved game data removed.');
+    renderLogs();
+    updateSaveControls();
+    if (mobileActionsDrawer) mobileActionsDrawer.classList.remove('open');
+  });
+}
+
+if (mobilePastRunsBtn) {
+  mobilePastRunsBtn.addEventListener('click', () => {
+    renderHistoryTable();
+    historyModal.style.display = 'flex';
+    if (mobileActionsDrawer) mobileActionsDrawer.classList.remove('open');
+  });
+}
 
 // Save / Load Controls
 resumeBtn.addEventListener('click', () => {
@@ -1418,6 +1505,14 @@ function showTutorialStep(stepIndex: number) {
   if (stepIndex < 0 || stepIndex >= TUTORIAL_STEPS.length) {
     endTutorial();
     return;
+  }
+
+  if (window.innerWidth <= 768) {
+    if (stepIndex === 0) {
+      setMobileTab('desk');
+    } else if (stepIndex === 1 || stepIndex === 2) {
+      setMobileTab('stats');
+    }
   }
 
   currentTutorialStep = stepIndex;
@@ -1580,6 +1675,10 @@ if (mobileTabBriefing) {
     setMobileTab('briefing');
   });
 }
+
+window.addEventListener('resize', () => {
+  setMobileTab(currentMobileTab);
+});
 
 // Startup Initialization
 const officeBg = document.getElementById('office-bg-container');

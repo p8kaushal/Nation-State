@@ -251,6 +251,13 @@
       white-space: nowrap;
     }
 
+    @media (min-width: 769px) {
+      .mobile-actions-drawer,
+      #mobile-actions-toggle-btn {
+        display: none !important;
+      }
+    }
+
     /* ========================================================
        2. Main Workspace Grid (calc(100vh - 110px) / flex: 1)
        ======================================================== */
@@ -488,24 +495,24 @@
       overflow: hidden;
     }
 
-    /* Nation Health Panel / Status Board */
+    /* Nation Health Panel / Status Board (Left Panel) */
     .nation-view-container {
       position: relative;
       z-index: 2;
-      width: 92%;
-      max-width: 480px;
+      width: 100%;
       flex-shrink: 0;
+      margin-bottom: 2px;
     }
 
     .status-board-grid {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 6px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
       background: rgba(11, 27, 61, 0.85);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 6px;
-      padding: 6px 8px;
+      padding: 5px 6px;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     }
 
@@ -634,185 +641,14 @@
     }
 
     /* ========================================================
-       Nation View Board (2D Visual Telemetry HUD)
+       Executive Memorandum Card Sheet
        ======================================================== */
-    .nation-view-container {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 92%;
-      max-width: 450px;
-      z-index: 10;
-      pointer-events: auto;
-    }
-
-    .status-board-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 5px;
-      background: rgba(11, 27, 61, 0.88);
-      backdrop-filter: blur(8px);
-      padding: 5px 7px;
-      border-radius: 6px;
-      border: 1px solid rgba(203, 213, 225, 0.25);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    }
-
-    .status-tile {
-      background: #FAF8F5;
-      border: 1px solid var(--bureaucracy-grey);
-      border-radius: 4px;
-      padding: 3px 4px 2px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1px;
-      transition: all 0.2s ease;
-      min-width: 0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      cursor: default;
-    }
-
-    .status-tile-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      padding: 0 1px;
-    }
-
-    .status-tile-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-    }
-
-    .status-tile-icon .sector-svg {
-      width: 12px;
-      height: 12px;
-    }
-
-    .status-tile-score {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .status-tile-label {
-      font-family: var(--font-sans);
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-      color: var(--federal-navy);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-      text-align: center;
-    }
-
-    .status-tile-bar {
-      width: 100%;
-      height: 2px;
-      background: rgba(0, 0, 0, 0.08);
-      border-radius: 1px;
-      overflow: hidden;
-    }
-
-    .status-tile-progress {
-      height: 100%;
-      border-radius: 1px;
-      transition: width 0.3s ease;
-    }
-
-    /* Healthy State (>= 70) */
-    .status-tile.state-healthy {
-      border-color: rgba(28, 75, 70, 0.35);
-      background: #F0FDF4;
-    }
-    .status-tile.state-healthy .status-tile-icon {
-      color: #166534;
-    }
-    .status-tile.state-healthy .status-tile-score {
-      color: #166534;
-    }
-    .status-tile.state-healthy .status-tile-progress {
-      background: #16A34A;
-    }
-    .status-tile.state-healthy:hover {
-      box-shadow: 0 0 8px rgba(22, 163, 74, 0.3);
-      border-color: #16A34A;
-    }
-
-    /* Neutral State (35 - 70) */
-    .status-tile.state-neutral {
-      border-color: rgba(217, 119, 6, 0.3);
-      background: #FFFBEB;
-    }
-    .status-tile.state-neutral .status-tile-icon {
-      color: #B45309;
-    }
-    .status-tile.state-neutral .status-tile-score {
-      color: #B45309;
-    }
-    .status-tile.state-neutral .status-tile-progress {
-      background: #F59E0B;
-    }
-    .status-tile.state-neutral:hover {
-      box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
-      border-color: #F59E0B;
-    }
-
-    /* Critical State (< 35) */
-    .status-tile.state-critical {
-      border-color: rgba(220, 38, 38, 0.6);
-      background: #FEF2F2;
-    }
-    .status-tile.state-critical .status-tile-icon {
-      color: #B91C1C;
-    }
-    .status-tile.state-critical .status-tile-score {
-      color: #B91C1C;
-    }
-    .status-tile.state-critical .status-tile-progress {
-      background: #EF4444;
-    }
-
-    /* Flashing critical warning animation */
-    @keyframes pulse-critical-warning {
-      0%, 100% {
-        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6), inset 0 0 3px rgba(220, 38, 38, 0.2);
-        border-color: #DC2626;
-      }
-      50% {
-        box-shadow: 0 0 8px 2px rgba(220, 38, 38, 0.7), inset 0 0 6px rgba(220, 38, 38, 0.35);
-        border-color: #991B1B;
-        background: #FEE2E2;
-      }
-    }
-
-    .flash-critical, .status-tile.flash-critical {
-      animation: pulse-critical-warning 1.4s ease-in-out infinite;
-    }
-
-    /* Executive Memorandum Card Sheet */
     .memo-container {
       position: relative;
       z-index: 2;
       width: 92%;
-<<<<<<< Updated upstream
       max-width: 480px;
-      max-height: calc(100% - 75px);
-=======
-      max-width: 450px;
-      max-height: calc(100% - 66px);
-      margin-top: 50px;
->>>>>>> Stashed changes
+      max-height: calc(100% - 20px);
       overflow-y: auto;
       background-color: #FAF8F5; /* Parchment Paper */
       color: #1E2022;
@@ -2236,7 +2072,7 @@
         background: rgba(11, 27, 61, 0.05);
       }
 
-      /* Top Bar */
+      /* Top Bar & Mobile Actions Drawer */
       .top-bar {
         height: 50px;
         min-height: 50px;
@@ -2245,7 +2081,9 @@
         gap: 4px;
         flex-wrap: nowrap;
         justify-content: space-between;
-        overflow: hidden;
+        overflow: visible;
+        position: relative;
+        z-index: 1000;
       }
 
       .top-bar-left {
@@ -2266,21 +2104,85 @@
       }
 
       .scenario-control {
-        display: none;
+        display: none !important;
       }
 
       .top-bar-right {
-        gap: 3px;
+        gap: 4px;
         flex-shrink: 0;
+        align-items: center;
       }
 
       .save-load-group {
         gap: 3px;
       }
 
-      .save-load-group #resume-btn,
-      .save-load-group #delete-save-btn {
+      .save-load-group button:not(#menu-home-btn) {
         display: none !important;
+      }
+
+      #mobile-actions-toggle-btn {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .mobile-actions-drawer {
+        position: absolute;
+        top: 50px;
+        left: 0;
+        right: 0;
+        background: #FAF8F5;
+        border-bottom: 2px solid var(--federal-navy);
+        z-index: 1500;
+        padding: 10px 12px;
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        box-shadow: var(--shadow-md);
+      }
+
+      .mobile-actions-drawer.open {
+        display: flex !important;
+      }
+
+      .mobile-drawer-section {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+      }
+
+      .mobile-drawer-section .scenario-label {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--federal-navy);
+        white-space: nowrap;
+      }
+
+      .mobile-drawer-section .scenario-select {
+        flex: 1;
+        padding: 5px 8px;
+        font-size: 12px;
+        background: #FFFFFF;
+        border: 1px solid var(--bureaucracy-grey);
+        border-radius: 4px;
+        color: var(--federal-navy);
+        font-weight: 600;
+      }
+
+      .mobile-drawer-btn-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        width: 100%;
+      }
+
+      .mobile-drawer-btn-grid .ctrl-btn {
+        justify-content: center;
+        min-height: 38px;
+        font-size: 11px;
+        font-weight: 600;
       }
 
       .ctrl-btn {
@@ -2300,7 +2202,7 @@
         flex-direction: column;
         grid-template-columns: 1fr;
         padding: 6px;
-        padding-bottom: 62px; /* clearance for 55px fixed bottom bar */
+        padding-bottom: 75px !important; /* clearance for 55px fixed bottom bar */
         height: calc(100vh - 50px);
         overflow-y: auto;
         overflow-x: hidden;
@@ -2317,6 +2219,10 @@
       body.mobile-tab-active-desk #panel-right,
       .main-workspace:not(.mobile-tab-active-stats):not(.mobile-tab-active-briefing) #panel-left,
       .main-workspace:not(.mobile-tab-active-stats):not(.mobile-tab-active-briefing) #panel-right {
+        display: none !important;
+      }
+
+      .mobile-tab-active-desk #nation-view-container {
         display: none !important;
       }
 
@@ -2355,6 +2261,10 @@
         width: 100%;
         flex: none;
         overflow: visible;
+      }
+
+      .side-panel {
+        padding-bottom: 75px !important;
       }
 
       .stat-compact-row {
@@ -2414,29 +2324,46 @@
         -webkit-overflow-scrolling: touch;
       }
 
+      .log-scrollable-body {
+        padding-bottom: 75px !important;
+      }
+
+      #toggle-log-btn {
+        display: none !important;
+      }
+
       /* Center stage and memo card responsiveness */
       .center-stage {
         height: auto;
         min-height: 100%;
         border-radius: 6px;
-        overflow-y: auto;
+        overflow: visible;
       }
 
       .decision-desk-container {
-        padding: 6px;
-        height: auto;
-        min-height: 100%;
+        height: auto !important;
+        min-height: 100% !important;
         justify-content: flex-start;
-        overflow-y: visible;
+        align-items: center;
+        padding: 10px;
+        padding-bottom: 75px !important;
+        box-sizing: border-box;
+        overflow-y: auto !important;
       }
 
       .nation-view-container {
+        position: relative;
+        top: auto;
+        left: auto;
+        transform: none;
         width: 100%;
         max-width: 100%;
+        margin-bottom: 6px;
       }
 
       .status-board-grid {
-        gap: 3px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
         padding: 4px 6px;
       }
 
@@ -2460,26 +2387,81 @@
       .memo-container {
         width: 100%;
         max-width: 100%;
-        max-height: none;
-        overflow-y: visible;
-        padding: 12px 14px;
+        max-height: none !important;
+        height: auto !important;
+        overflow-y: visible !important;
+        padding: 8px 12px;
+        gap: 6px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
       }
 
+      .memo-header-banner {
+        padding-bottom: 4px;
+      }
+
+      .memo-emblem {
+        font-size: 10.5px;
+        letter-spacing: 1px;
+      }
+
+      .memo-seal-title {
+        font-size: 8.5px;
+      }
+
+      .memo-meta-bar {
+        font-size: 9.5px;
+        padding: 2px 0;
+      }
+
       .memo-subject-title {
-        font-size: 14.5px;
+        font-size: 16px;
+        margin: 0;
+        line-height: 1.25;
       }
 
       .memo-body-text {
-        font-size: 12px;
+        font-size: 11.5px;
+        line-height: 1.3;
+        margin: 0;
+      }
+
+      .memo-options-list {
+        gap: 6px;
+        margin-top: 0;
       }
 
       .executive-option-btn {
-        padding: 10px 12px;
+        padding: 6px 10px;
+        min-height: 38px;
+        font-size: 12px;
+        gap: 3px;
       }
 
       .option-title-text {
         font-size: 12px;
+        line-height: 1.3;
+      }
+
+      .skip-btn {
+        min-height: 36px;
+        padding: 6px;
+        font-size: 11.5px;
+      }
+
+      .autoplay-panel {
+        margin-top: 4px;
+        padding-top: 4px;
+        gap: 6px;
+      }
+
+      .autoplay-panel h4 {
+        font-size: 11px;
+      }
+
+      .autoplay-panel #autoplay-btn {
+        min-height: 36px;
+        padding: 6px;
+        font-size: 11.5px;
       }
 
       /* Home Screen & Modals Responsive Adjustments */
@@ -2565,11 +2547,7 @@
       }
     }
   </style>
-<<<<<<< Updated upstream
-  <script type="module" crossorigin src="/assets/index-DkAK0bKs.js"></script>
-=======
-  <script type="module" crossorigin src="/assets/index-C9XmGuH_.js"></script>
->>>>>>> Stashed changes
+  <script type="module" crossorigin src="/assets/index-DIZz1SoX.js"></script>
 </head>
 <body>
   <!-- Cabinet Chamber Home Screen Overlay -->
@@ -2770,14 +2748,35 @@
           <button id="delete-save-btn" class="ctrl-btn btn-danger" title="Delete current save file">Delete Save</button>
           <button id="past-runs-btn" class="ctrl-btn btn-secondary" title="View past administration records">Past Runs</button>
         </div>
+        <button id="mobile-actions-toggle-btn" class="ctrl-btn btn-secondary" style="display: none;" title="Open mobile actions drawer">⚙️ Actions</button>
         <div id="turn-display" class="turn-badge">Turn 1</div>
       </div>
     </header>
+
+    <!-- Mobile Actions Dropdown Drawer (Positioned under top-bar on <= 768px screens) -->
+    <div id="mobile-actions-drawer" class="mobile-actions-drawer">
+      <div class="mobile-drawer-section">
+        <label for="mobile-scenario-select" class="scenario-label">Scenario:</label>
+        <select id="mobile-scenario-select" class="scenario-select">
+          <option value="default">Golden Era</option>
+          <option value="post_war">Post-War Reconstruction</option>
+          <option value="petrostate">Petrostate</option>
+          <option value="fragile_democracy">Fragile Democracy</option>
+        </select>
+      </div>
+      <div class="mobile-drawer-btn-grid">
+        <button id="mobile-save-btn" class="ctrl-btn btn-primary" title="Save game manually">💾 Save</button>
+        <button id="mobile-load-btn" class="ctrl-btn btn-secondary" title="Load saved game">📂 Load</button>
+        <button id="mobile-delete-save-btn" class="ctrl-btn btn-danger" title="Delete current save file">🗑️ Delete Save</button>
+        <button id="mobile-past-runs-btn" class="ctrl-btn btn-secondary" title="View past administration records">📜 Past Runs</button>
+      </div>
+    </div>
 
     <!-- Main Workspace Grid (Left Panel, Center Desk Mat Stage, Right Panel) -->
     <main class="main-workspace">
       <!-- Left Side Panel (Economy & Faction Trust) -->
       <aside class="side-panel" id="panel-left">
+        <div id="nation-view-container" class="nation-view-container"></div>
         <!-- Economy Section -->
         <div class="panel-section">
           <div class="panel-section-header">
@@ -2799,7 +2798,6 @@
       <section class="center-stage">
         <div class="decision-desk-container">
           <div id="office-bg-container" class="office-bg-container"></div>
-          <div id="nation-view-container" class="nation-view-container"></div>
           <div id="decision-container" class="memo-container">
             <!-- Memorandum Sheet Header -->
             <div class="memo-header-banner">
