@@ -3,300 +3,960 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nation State Simulation</title>
+  <title>Nation State Simulation - Cabinet Chamber</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background-color: #f4f6f8;
-      color: #2c3e50;
+    :root {
+      --bg-parchment: #FAF8F5;
+      --bg-card: #FFFFFF;
+      --bg-card-subtle: #F6F4EF;
+      --bg-card-hover: #F9F8F5;
+      --federal-navy: #0B1B3D;
+      --federal-navy-light: #162B56;
+      --federal-navy-subtle: rgba(11, 27, 61, 0.06);
+      --bureaucracy-grey: #CBD5E1;
+      --bureaucracy-border: #E2E8F0;
+      --bureaucracy-dark: #475569;
+      --bureaucracy-text: #1E293B;
+      --stability-teal: #1C4B46;
+      --stability-teal-light: #286C65;
+      --stability-teal-bg: #E6F3F1;
+      --stability-teal-text: #0E3833;
+      --cabinet-crimson: #800020;
+      --cabinet-crimson-light: #A31238;
+      --cabinet-crimson-bg: #FDF0F2;
+      --cabinet-crimson-text: #660019;
+      --warning-amber: #92400E;
+      --warning-amber-bg: #FEF3C7;
+      --warning-amber-text: #78350F;
+      --font-serif: Georgia, "Times New Roman", Times, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --shadow-sm: 0 1px 3px rgba(11, 27, 61, 0.05);
+      --shadow-md: 0 4px 14px rgba(11, 27, 61, 0.08);
+      --shadow-lg: 0 10px 25px rgba(11, 27, 61, 0.12);
     }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      margin: 0;
+      padding: 24px 16px;
+      background-color: var(--bg-parchment);
+      color: var(--bureaucracy-text);
+      line-height: 1.5;
+    }
+
     .container {
-      max-width: 1000px;
+      max-width: 1240px;
       margin: 0 auto;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      gap: 24px;
     }
+
+    @media (max-width: 960px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Header Styling */
     .header {
       grid-column: 1 / -1;
-      background: #ffffff;
-      padding: 16px 24px;
+      background: var(--bg-card);
+      padding: 18px 24px;
       border-radius: 8px;
-      border: 1px solid #dcdfe6;
+      border: 1px solid var(--bureaucracy-grey);
+      box-shadow: var(--shadow-sm);
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 16px;
+      border-left: 5px solid var(--federal-navy);
     }
+
     .header-left {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
       flex-wrap: wrap;
     }
+
+    .app-title-group h1 {
+      margin: 0;
+      font-size: 24px;
+      font-family: var(--font-serif);
+      color: var(--federal-navy);
+      letter-spacing: -0.3px;
+    }
+
+    .app-title-group .subtitle {
+      font-size: 12px;
+      color: var(--bureaucracy-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 600;
+    }
+
     .header-right {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
     }
+
     .scenario-control {
       display: flex;
       align-items: center;
       gap: 8px;
+      background: var(--bg-card-subtle);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--bureaucracy-border);
     }
+
     .scenario-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--bureaucracy-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .scenario-select {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--bureaucracy-grey);
       font-size: 13px;
       font-weight: 600;
-      color: #475569;
-    }
-    .scenario-select {
-      padding: 6px 12px;
-      border-radius: 6px;
-      border: 1px solid #cbd5e1;
-      font-size: 14px;
-      font-weight: 500;
-      background: #ffffff;
-      color: #1e293b;
+      background: var(--bg-card);
+      color: var(--federal-navy);
       cursor: pointer;
       outline: none;
+      font-family: var(--font-sans);
     }
+
     .scenario-select:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+      border-color: var(--federal-navy);
+      box-shadow: 0 0 0 2px rgba(11, 27, 61, 0.15);
     }
+
     .save-load-group {
       display: flex;
       align-items: center;
       gap: 6px;
     }
+
     .ctrl-btn {
-      padding: 6px 12px;
-      font-size: 13px;
+      padding: 7px 12px;
+      font-size: 12px;
       font-weight: 600;
-      border: none;
-      border-radius: 6px;
+      border: 1px solid transparent;
+      border-radius: 4px;
       cursor: pointer;
       transition: all 0.15s ease;
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      font-family: var(--font-sans);
+      letter-spacing: 0.2px;
     }
+
     .ctrl-btn:disabled {
-      opacity: 0.5;
+      opacity: 0.45;
       cursor: not-allowed;
     }
+
     .btn-primary {
-      background: #2563eb;
+      background: var(--federal-navy);
       color: #ffffff;
+      border-color: var(--federal-navy);
     }
+
     .btn-primary:hover:not(:disabled) {
-      background: #1d4ed8;
+      background: var(--federal-navy-light);
     }
+
     .btn-secondary {
-      background: #64748b;
-      color: #ffffff;
+      background: var(--bg-card);
+      color: var(--bureaucracy-dark);
+      border-color: var(--bureaucracy-grey);
     }
+
     .btn-secondary:hover:not(:disabled) {
-      background: #475569;
+      background: var(--bg-card-subtle);
+      color: var(--federal-navy);
+      border-color: var(--bureaucracy-dark);
     }
+
     .btn-success {
-      background: #16a34a;
+      background: var(--stability-teal);
       color: #ffffff;
+      border-color: var(--stability-teal);
       animation: pulse-glow 2s infinite;
     }
+
     .btn-success:hover:not(:disabled) {
-      background: #15803d;
+      background: var(--stability-teal-light);
     }
+
     .btn-danger {
-      background: #ef4444;
+      background: var(--cabinet-crimson-bg);
+      color: var(--cabinet-crimson);
+      border-color: rgba(128, 0, 32, 0.3);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: var(--cabinet-crimson);
       color: #ffffff;
     }
-    .btn-danger:hover:not(:disabled) {
-      background: #dc2626;
-    }
+
     @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
-      50% { box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.2); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(28, 75, 70, 0.4); }
+      50% { box-shadow: 0 0 0 4px rgba(28, 75, 70, 0.15); }
     }
+
     .turn-badge {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      color: #2563eb;
-      padding: 4px 12px;
-      background: #eff6ff;
+      font-family: var(--font-serif);
+      color: var(--federal-navy);
+      padding: 6px 14px;
+      background: var(--bg-card-subtle);
       border-radius: 6px;
-      border: 1px solid #bfdbfe;
+      border: 1px solid var(--bureaucracy-grey);
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
+
+    /* Card Panels */
     .card {
-      background: #ffffff;
-      padding: 20px;
+      background: var(--bg-card);
+      padding: 22px;
       border-radius: 8px;
-      border: 1px solid #dcdfe6;
+      border: 1px solid var(--bureaucracy-grey);
+      box-shadow: var(--shadow-sm);
     }
+
+    .card-header-styled {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--bureaucracy-border);
+      padding-bottom: 10px;
+      margin-bottom: 18px;
+    }
+
+    .card-header-styled h2 {
+      margin: 0;
+      font-size: 19px;
+      font-family: var(--font-serif);
+      color: var(--federal-navy);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--bureaucracy-dark);
+      font-weight: 500;
+    }
+
     .full-width {
       grid-column: 1 / -1;
     }
-    h2 {
-      margin-top: 0;
-      margin-bottom: 16px;
-      font-size: 18px;
-      border-bottom: 2px solid #ebeef5;
-      padding-bottom: 8px;
-    }
-    .stats-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .stats-list li {
-      padding: 8px 12px;
-      background: #f8fafc;
-      border-radius: 4px;
-      border: 1px solid #e2e8f0;
-      display: flex;
-      justify-content: space-between;
+
+    /* Section Subheaders */
+    .section-title {
       font-size: 14px;
+      font-family: var(--font-serif);
+      font-weight: 700;
+      color: var(--federal-navy);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin: 18px 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--bureaucracy-border);
+      padding-bottom: 4px;
     }
-    .stat-label {
-      font-weight: 500;
-      color: #64748b;
+
+    /* Macroeconomic KPIs Grid */
+    .macro-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
     }
-    .stat-value {
+
+    .macro-tile {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--bureaucracy-border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .macro-tile.alert-active {
+      border-color: var(--cabinet-crimson);
+      background: var(--cabinet-crimson-bg);
+    }
+
+    .macro-label {
+      font-size: 11px;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--bureaucracy-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
     }
-    .alert-debt {
-      color: #dc2626;
-      font-weight: bold;
+
+    .macro-value {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--federal-navy);
     }
-    .options-list {
+
+    .macro-sub {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--bureaucracy-dark);
+    }
+
+    /* Modern Flex/Grid Stat Rendering Layout */
+    .stats-container {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      margin-top: 16px;
     }
-    .option-btn {
-      padding: 12px 16px;
-      font-size: 14px;
+
+    .stat-row {
+      background: var(--bg-card);
+      border: 1px solid var(--bureaucracy-border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .stat-row:hover {
+      border-color: var(--bureaucracy-grey);
+      box-shadow: 0 2px 6px rgba(11, 27, 61, 0.04);
+    }
+
+    .stat-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .stat-label-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-icon {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .stat-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--federal-navy);
+    }
+
+    .stat-value-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-val-text {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--federal-navy);
+    }
+
+    /* Trend indicator badges */
+    .delta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .delta-teal {
+      background: var(--stability-teal-bg);
+      color: var(--stability-teal);
+      border: 1px solid rgba(28, 75, 70, 0.25);
+    }
+
+    .delta-crimson {
+      background: var(--cabinet-crimson-bg);
+      color: var(--cabinet-crimson);
+      border: 1px solid rgba(128, 0, 32, 0.25);
+    }
+
+    .delta-neutral {
+      background: #F1F5F9;
+      color: #64748B;
+      border: 1px solid #CBD5E1;
+    }
+
+    /* Visual Progress Bars */
+    .stat-bar-track {
+      height: 7px;
+      background: #E2E8F0;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.35s ease, background-color 0.25s ease;
+    }
+
+    .bar-fill-teal {
+      background: linear-gradient(90deg, #286C65, #1C4B46);
+    }
+
+    .bar-fill-navy {
+      background: linear-gradient(90deg, #162B56, #0B1B3D);
+    }
+
+    .bar-fill-amber {
+      background: linear-gradient(90deg, #D97706, #B45309);
+    }
+
+    .bar-fill-crimson {
+      background: linear-gradient(90deg, #A31238, #800020);
+    }
+
+    /* Causal Breakdown Details */
+    .causal-details {
+      margin-top: 6px;
+      border-top: 1px dashed var(--bureaucracy-border);
+      padding-top: 4px;
+    }
+
+    .causal-summary {
+      font-size: 11px;
+      color: var(--bureaucracy-dark);
+      cursor: pointer;
+      user-select: none;
       font-weight: 500;
-      text-align: left;
-      background: #2563eb;
-      color: #ffffff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      line-height: 1.4;
-      transition: background-color 0.15s ease-in-out;
+      outline: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s ease;
     }
-    .option-btn:hover {
-      background: #1d4ed8;
+
+    .causal-summary:hover {
+      color: var(--federal-navy);
     }
-    .option-effects {
-      display: block;
-      font-size: 12px;
-      opacity: 0.85;
+
+    .causal-list {
       margin-top: 4px;
+      padding: 6px 8px;
+      background: var(--bg-card-subtle);
+      border-radius: 4px;
+      font-size: 11px;
+      color: #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
-    .skip-btn {
-      margin-top: 14px;
-      padding: 10px 16px;
-      background: #64748b;
-      color: #ffffff;
-      font-size: 14px;
-      border: none;
+
+    .causal-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .causal-delta-pos {
+      color: var(--stability-teal);
+      font-weight: 700;
+    }
+
+    .causal-delta-neg {
+      color: var(--cabinet-crimson);
+      font-weight: 700;
+    }
+
+    .causal-source {
+      font-family: var(--font-sans);
+      color: var(--bureaucracy-dark);
+    }
+
+    /* Faction Trust Section */
+    .trust-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .trust-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .trust-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bureaucracy-border);
       border-radius: 6px;
-      cursor: pointer;
-      width: 100%;
-      transition: background-color 0.15s ease-in-out;
+      padding: 10px 12px;
+      position: relative;
+      transition: all 0.15s ease;
     }
-    .skip-btn:hover {
-      background: #475569;
+
+    .trust-card:hover {
+      border-color: var(--bureaucracy-grey);
     }
-    .log-panel {
-      height: 220px;
-      overflow-y: auto;
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 14px;
-      border-radius: 6px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.5;
+
+    .trust-card.trust-warning {
+      border-color: var(--cabinet-crimson);
+      background: var(--cabinet-crimson-bg);
     }
-    .log-entry {
-      margin-bottom: 4px;
-      white-space: pre-wrap;
+
+    .trust-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
     }
-    .pending-effects-list {
-      margin: 8px 0 0 0;
-      padding-left: 20px;
-      font-size: 13px;
-      color: #475569;
+
+    .trust-name-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .decision-desc {
-      line-height: 1.5;
+
+    .trust-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--federal-navy);
+    }
+
+    /* Pending Consequences Redesign */
+    .pending-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pending-item-card {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--bureaucracy-border);
+      border-left: 3px solid var(--stability-teal);
+      border-radius: 4px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .pending-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .pending-timing-badge {
+      font-weight: 700;
+      color: var(--stability-teal);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pending-stats-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--federal-navy);
+      background: var(--bg-card);
+      padding: 1px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--bureaucracy-border);
+      font-weight: 600;
+    }
+
+    .pending-item-desc {
+      font-size: 12px;
       color: #334155;
     }
-    #game-over-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.9);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
+
+    .empty-placeholder {
+      font-size: 12px;
+      color: #94A3B8;
+      font-style: italic;
+      padding: 8px 0;
     }
-    .game-over-modal {
-      background: #ffffff;
-      padding: 30px;
+
+    /* ========================================================
+       Executive Memorandum Decision Card Sheet
+       ======================================================== */
+    .memo-container {
+      background: var(--bg-card);
+      border: 1px solid var(--federal-navy);
       border-radius: 8px;
-      text-align: center;
-      max-width: 520px;
-      width: 100%;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-    .game-over-title {
-      font-size: 28px;
-      font-weight: 700;
-      margin-top: 0;
-    }
-    .game-over-title.win {
-      color: #16a34a;
-    }
-    .game-over-title.lose {
-      color: #dc2626;
-    }
-    .game-over-reason {
-      font-size: 16px;
-      color: #475569;
-      margin: 16px 0 24px;
-      line-height: 1.5;
-    }
-    .modal-actions {
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      position: relative;
       display: flex;
-      justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 16px;
     }
-    .restart-btn {
-      padding: 12px 24px;
-      font-size: 16px;
+
+    .memo-container::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--federal-navy), var(--stability-teal), var(--federal-navy));
+      border-top-left-radius: 7px;
+      border-top-right-radius: 7px;
+    }
+
+    .memo-header-banner {
+      text-align: center;
+      border-bottom: 2px solid var(--federal-navy);
+      padding-bottom: 12px;
+    }
+
+    .memo-emblem {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--federal-navy);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-family: var(--font-serif);
+      margin-bottom: 2px;
+    }
+
+    .memo-seal-title {
+      font-size: 11px;
+      color: var(--bureaucracy-dark);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
       font-weight: 600;
-      background: #2563eb;
-      color: #fff;
-      border: none;
+    }
+
+    .memo-meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--bureaucracy-dark);
+      padding: 4px 0;
+      border-bottom: 1px solid var(--bureaucracy-border);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .issue-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-recurring {
+      background: var(--federal-navy-subtle);
+      color: var(--federal-navy);
+      border: 1px solid rgba(11, 27, 61, 0.2);
+    }
+
+    .badge-crisis {
+      background: var(--cabinet-crimson-bg);
+      color: var(--cabinet-crimson);
+      border: 1px solid rgba(128, 0, 32, 0.3);
+      animation: pulse-glow-crimson 2s infinite;
+    }
+
+    @keyframes pulse-glow-crimson {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(128, 0, 32, 0.35); }
+      50% { box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.15); }
+    }
+
+    .memo-subject-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--federal-navy);
+      margin: 0;
+      line-height: 1.35;
+    }
+
+    .memo-body-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #334155;
+      margin: 0;
+    }
+
+    /* Decision Options with Directional Hint Badges */
+    .memo-options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .executive-option-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--bureaucracy-grey);
+      border-radius: 6px;
+      padding: 14px 16px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(11, 27, 61, 0.04);
+    }
+
+    .executive-option-btn:hover:not(:disabled) {
+      border-color: var(--stability-teal);
+      background: var(--bg-card-hover);
+      box-shadow: var(--shadow-sm);
+      transform: translateY(-1px);
+    }
+
+    .executive-option-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .executive-option-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .option-title-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .option-bullet {
+      color: var(--stability-teal);
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .option-title-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--federal-navy);
+      line-height: 1.4;
+    }
+
+    /* Directional Hint Badges */
+    .option-hints-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-left: 18px;
+    }
+
+    .hint-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.3;
+      letter-spacing: -0.2px;
+    }
+
+    .hint-positive {
+      background: var(--stability-teal-bg);
+      color: var(--stability-teal-text);
+      border: 1px solid rgba(28, 75, 70, 0.25);
+    }
+
+    .hint-negative {
+      background: var(--cabinet-crimson-bg);
+      color: var(--cabinet-crimson-text);
+      border: 1px solid rgba(128, 0, 32, 0.25);
+    }
+
+    .hint-fiscal {
+      background: var(--warning-amber-bg);
+      color: var(--warning-amber-text);
+      border: 1px solid rgba(180, 83, 9, 0.25);
+    }
+
+    .hint-delayed {
+      background: #EFF6FF;
+      color: #1E40AF;
+      border: 1px solid #BFDBFE;
+    }
+
+    .skip-btn {
+      padding: 10px 16px;
+      background: var(--bg-card);
+      color: var(--bureaucracy-dark);
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--bureaucracy-grey);
       border-radius: 6px;
       cursor: pointer;
+      width: 100%;
+      transition: all 0.15s ease;
+      font-family: var(--font-sans);
     }
-    .restart-btn:hover {
-      background: #1d4ed8;
+
+    .skip-btn:hover:not(:disabled) {
+      background: var(--bg-card-subtle);
+      color: var(--federal-navy);
+      border-color: var(--federal-navy);
+    }
+
+    .autoplay-panel {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--bureaucracy-grey);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .autoplay-panel h4 {
+      margin: 0;
+      font-size: 12px;
+      font-family: var(--font-serif);
+      color: var(--federal-navy);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    /* ========================================================
+       Teletype Briefing Log Panel (Situation Room Intel)
+       ======================================================== */
+    .log-panel {
+      height: 280px;
+      overflow-y: auto;
+      background: #0B1B3D;
+      color: #E2E8F0;
+      padding: 16px 18px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.6;
+      border: 1px solid #162B56;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .log-timeline-turn {
+      margin-bottom: 16px;
+      border-left: 2px solid #286C65;
+      padding-left: 12px;
+      margin-left: 4px;
+    }
+
+    .log-turn-header {
+      font-size: 12px;
+      font-weight: 700;
+      color: #38BDF8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .log-entry-row {
+      margin-bottom: 5px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      word-break: break-word;
+    }
+
+    .log-flag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .flag-decision {
+      background: #1E3A8A;
+      color: #93C5FD;
+      border: 1px solid #3B82F6;
+    }
+
+    .flag-event {
+      background: #7F1D1D;
+      color: #FCA5A5;
+      border: 1px solid #EF4444;
+    }
+
+    .flag-pending {
+      background: #064E3B;
+      color: #6EE7B7;
+      border: 1px solid #10B981;
+    }
+
+    .flag-drift {
+      background: #334155;
+      color: #CBD5E1;
+      border: 1px solid #64748B;
+    }
+
+    .flag-system {
+      background: #78350F;
+      color: #FDE68A;
+      border: 1px solid #F59E0B;
+    }
+
+    .log-text {
+      color: #E2E8F0;
     }
 
     /* History Table Styling */
@@ -304,41 +964,54 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 2px solid #ebeef5;
+      border-bottom: 2px solid var(--bureaucracy-border);
       padding-bottom: 8px;
       margin-bottom: 16px;
     }
+
     .history-card-header h2 {
       margin: 0;
-      border-bottom: none;
-      padding-bottom: 0;
+      font-family: var(--font-serif);
+      font-size: 19px;
+      color: var(--federal-navy);
     }
+
     .history-table-container {
       overflow-x: auto;
     }
+
     .history-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
       text-align: left;
     }
+
     .history-table th {
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       padding: 10px 14px;
       font-weight: 600;
-      color: #475569;
-      border-bottom: 2px solid #e2e8f0;
+      color: var(--bureaucracy-dark);
+      border-bottom: 2px solid var(--bureaucracy-grey);
       white-space: nowrap;
+      font-family: var(--font-serif);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
     }
+
     .history-table td {
       padding: 10px 14px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--bureaucracy-border);
       color: #334155;
       vertical-align: middle;
+      font-family: var(--font-sans);
     }
+
     .history-table tr:hover td {
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
     }
+
     .result-badge {
       display: inline-block;
       padding: 2px 8px;
@@ -348,28 +1021,106 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
     .result-badge.win {
-      background: #dcfce7;
-      color: #166534;
+      background: var(--stability-teal-bg);
+      color: var(--stability-teal);
+      border: 1px solid rgba(28, 75, 70, 0.3);
     }
+
     .result-badge.lose {
-      background: #fee2e2;
-      color: #991b1b;
+      background: var(--cabinet-crimson-bg);
+      color: var(--cabinet-crimson);
+      border: 1px solid rgba(128, 0, 32, 0.3);
     }
+
     .empty-history-msg {
       text-align: center;
-      color: #64748b;
+      color: var(--bureaucracy-dark);
       font-size: 13px;
       padding: 24px 0;
     }
+
+    /* Game Over Modal */
+    #game-over-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(11, 27, 61, 0.85);
+      backdrop-filter: blur(3px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .game-over-modal {
+      background: var(--bg-card);
+      padding: 36px 30px;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 520px;
+      width: 100%;
+      border: 2px solid var(--federal-navy);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .game-over-title {
+      font-size: 28px;
+      font-family: var(--font-serif);
+      font-weight: 700;
+      margin-top: 0;
+      letter-spacing: 0.5px;
+    }
+
+    .game-over-title.win {
+      color: var(--stability-teal);
+    }
+
+    .game-over-title.lose {
+      color: var(--cabinet-crimson);
+    }
+
+    .game-over-reason {
+      font-size: 15px;
+      color: #334155;
+      margin: 16px 0 24px;
+      line-height: 1.6;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .restart-btn {
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      background: var(--federal-navy);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+    }
+
+    .restart-btn:hover {
+      background: var(--federal-navy-light);
+    }
   </style>
-  <script type="module" crossorigin src="/assets/index-kweI0BGW.js"></script>
+  <script type="module" crossorigin src="/assets/index-CpSAzHgJ.js"></script>
 </head>
 <body>
   <div class="container">
+    <!-- Top Cabinet Header -->
     <header class="header">
       <div class="header-left">
-        <h1 style="margin: 0; font-size: 22px;">Nation State Simulator</h1>
+        <div class="app-title-group">
+          <h1>Cabinet of the Republic</h1>
+          <div class="subtitle">Executive Administration & National Simulator</div>
+        </div>
         <div class="scenario-control">
           <label for="scenario-select" class="scenario-label">Scenario:</label>
           <select id="scenario-select" class="scenario-select">
@@ -391,56 +1142,88 @@
       </div>
     </header>
 
+    <!-- Left Column: Nation Stats & Cabinet Meters -->
     <div class="card">
-      <h2>Nation Stats</h2>
-      <ul id="stats-list" class="stats-list"></ul>
-      <div style="margin-top: 16px;">
-        <strong style="font-size: 14px; color: #475569;">Pending Delayed Effects:</strong>
-        <ul id="pending-effects-list" class="pending-effects-list"></ul>
+      <div class="card-header-styled">
+        <h2>🏛️ State of the Nation</h2>
+        <span class="card-subtitle">Executive Indicators</span>
       </div>
-      <div style="margin-top: 16px;">
-        <h3 style="margin-top: 24px;">Faction Trust</h3>
-        <ul class="stats-list" id="trust-stats-list">
-          <li title="Military leadership's confidence"><span class="stat-icon">🎖️</span> Military Trust: <span class="stat-value" id="stat-militaryTrust">50</span></li>
-          <li title="Corporate sector confidence"><span class="stat-icon">💼</span> Business Trust: <span class="stat-value" id="stat-businessTrust">50</span></li>
-          <li title="General public's trust in institutions"><span class="stat-icon">👥</span> Public Trust: <span class="stat-value" id="stat-publicTrust">50</span></li>
-          <li title="International community standing"><span class="stat-icon">🌍</span> Int'l Trust: <span class="stat-value" id="stat-internationalTrust">50</span></li>
-        </ul>
+
+      <!-- Macroeconomic KPI Grid -->
+      <div id="macro-kpi-grid" class="macro-grid"></div>
+
+      <!-- Index Stats with Visual Progress & Trend Badges -->
+      <div class="section-title">
+        <span>Policy Index Gauges (0–100)</span>
       </div>
+      <div id="stats-list" class="stats-container"></div>
+
+      <!-- Faction Trust Meters -->
+      <div class="section-title" style="margin-top: 22px;">
+        <span>Faction Trust Meters</span>
+      </div>
+      <div class="trust-grid" id="trust-stats-list"></div>
+
+      <!-- Pending Consequences List -->
+      <div class="section-title" style="margin-top: 22px;">
+        <span>Pending Delayed Consequences</span>
+      </div>
+      <div id="pending-effects-list" class="pending-container"></div>
     </div>
 
+    <!-- Right Column: Active Decision Card (Executive Memorandum) -->
     <div class="card">
-      <h2>Active Decision</h2>
-      <div id="decision-container">
-        <h3 id="decision-title" style="margin-top: 0; font-size: 16px;">Loading...</h3>
-        <p id="decision-description" class="decision-desc"></p>
-        <div id="decision-options" class="options-list"></div>
-        <button id="next-turn-btn" class="skip-btn">Advance Turn (No Action)</button>
+      <div class="card-header-styled">
+        <h2>📜 Executive Action</h2>
+        <span class="card-subtitle">Presidential Determination</span>
+      </div>
+
+      <div id="decision-container" class="memo-container">
+        <!-- Memorandum Sheet Header -->
+        <div class="memo-header-banner">
+          <div class="memo-emblem">★ EXECUTIVE MEMORANDUM ★</div>
+          <div class="memo-seal-title">OFFICE OF THE HEAD OF STATE • OFFICIAL DISPATCH</div>
+        </div>
+
+        <div class="memo-meta-bar">
+          <span id="decision-ref-badge">REF: #DISPATCH-PENDING</span>
+          <span id="decision-type-badge" class="issue-type-badge badge-recurring">📋 RECURRING ISSUE</span>
+        </div>
+
+        <h3 id="decision-title" class="memo-subject-title">Loading...</h3>
+        <p id="decision-description" class="memo-body-text"></p>
         
-        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-          <h3 style="margin-top: 0; font-size: 14px;">Autoplay</h3>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <button id="autoplay-btn" class="skip-btn" style="margin-top: 0; flex: 1;">Start Autoplay</button>
-            <select id="autoplay-delay" style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
-              <option value="0">0ms</option>
-              <option value="100">100ms</option>
-              <option value="500" selected>500ms</option>
-              <option value="1000">1000ms</option>
-            </select>
-          </div>
+        <div id="decision-options" class="memo-options-list"></div>
+
+        <button id="next-turn-btn" class="skip-btn">Advance Turn Without Action</button>
+
+        <div class="autoplay-panel">
+          <h4>Autoplay:</h4>
+          <button id="autoplay-btn" class="ctrl-btn btn-primary" style="flex: 1;">Start Autoplay</button>
+          <select id="autoplay-delay" class="scenario-select" style="padding: 5px 8px;">
+            <option value="0">0ms</option>
+            <option value="100">100ms</option>
+            <option value="500" selected>500ms</option>
+            <option value="1000">1000ms</option>
+          </select>
         </div>
       </div>
     </div>
 
+    <!-- Teletype Situation Room Briefing Log -->
     <div class="card full-width">
-      <h2>Turn & Event Log</h2>
+      <div class="card-header-styled">
+        <h2>📡 Teletype Situation Briefing</h2>
+        <span class="card-subtitle">Chronological Intelligence & Action Feed</span>
+      </div>
       <div id="log-panel" class="log-panel"></div>
     </div>
 
+    <!-- History Table -->
     <div class="card full-width">
       <div class="history-card-header">
-        <h2>Past Run History</h2>
-        <button id="clear-history-btn" class="ctrl-btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">Clear History</button>
+        <h2>📜 Past Administration Records</h2>
+        <button id="clear-history-btn" class="ctrl-btn btn-secondary" style="font-size: 11px; padding: 4px 8px;">Clear History</button>
       </div>
       <div class="history-table-container">
         <table id="history-table" class="history-table">
@@ -453,23 +1236,23 @@
               <th>Outcome Reason</th>
             </tr>
           </thead>
-          <tbody id="history-table-body">
-          </tbody>
+          <tbody id="history-table-body"></tbody>
         </table>
         <div id="no-history-msg" class="empty-history-msg">
-          No completed runs recorded yet. Finish a simulation to view history.
+          No completed administration records recorded yet. Finish a simulation to view history.
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Game Over Overlay -->
   <div id="game-over-overlay">
     <div class="game-over-modal">
       <h1 id="game-over-title" class="game-over-title">GAME OVER</h1>
       <p id="game-over-reason" class="game-over-reason"></p>
       <div class="modal-actions">
         <button id="restart-btn" class="restart-btn">Restart Game</button>
-        <button id="modal-delete-save-btn" class="ctrl-btn btn-danger" style="padding: 12px 18px; font-size: 15px;">Delete Save & Restart</button>
+        <button id="modal-delete-save-btn" class="ctrl-btn btn-danger" style="padding: 12px 18px; font-size: 14px;">Delete Save & Restart</button>
       </div>
     </div>
   </div>

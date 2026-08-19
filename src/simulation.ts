@@ -15,6 +15,11 @@ function clamp(value: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, value));
 }
 
+export function recordDelta(state: NationState, stat: string, delta: number, source: string) {
+  if (delta === 0) return;
+  state.recentDeltas.push({ stat, delta, source });
+}
+
 export function getInitialState(): NationState {
   return {
     turn: 1,
@@ -47,6 +52,7 @@ export function getInitialState(): NationState {
     activeSpawnedDecisionId: null,
     eventFlags: {},
     activeEscalations: [],
+    recentDeltas: [],
   };
 }
 
@@ -73,7 +79,7 @@ export function evaluateExpression(state: any, expression: string): number {
   }
 }
 
-export function applyEffect(state: NationState, effectStr: string) {
+export function applyEffect(state: NationState, effectStr: string, source: string) {
   const match = effectStr.match(/^([a-zA-Z]+)\s*([+\-=])\s*(.+)$/);
   if (!match) return;
   const stat = match[1] as keyof NationState;
@@ -81,12 +87,17 @@ export function applyEffect(state: NationState, effectStr: string) {
   const rhs = evaluateExpression(state, match[3]);
   
   let current = Number(state[stat] || 0);
-  if (operator === '+') (state as any)[stat] = current + rhs;
-  else if (operator === '-') (state as any)[stat] = current - rhs;
-  else if (operator === '=') (state as any)[stat] = rhs;
+  let nextValue = current;
+
+  if (operator === '+') nextValue = current + rhs;
+  else if (operator === '-') nextValue = current - rhs;
+  else if (operator === '=') nextValue = rhs;
+
+  (state as any)[stat] = nextValue;
+  recordDelta(state, stat, nextValue - current, source);
 
   if (state.recentLogs) {
-    state.recentLogs.push(`    [Engine] ${stat} changed from ${current.toFixed(1)} to ${Number((state as any)[stat]).toFixed(1)}`);
+    state.recentLogs.push(`    [Engine] ${stat} changed from ${current.toFixed(1)} to ${nextValue.toFixed(1)}`);
   }
 }
 
@@ -101,12 +112,12 @@ export function applyDecision(state: NationState, option: DecisionOption, decisi
 
   if (option.immediateEffects) {
     for (const effect of option.immediateEffects) {
-      applyEffect(state, effect);
+      applyEffect(state, effect, option.title);
     }
   }
   if (option.factionEffects) {
     for (const effect of option.factionEffects) {
-      applyEffect(state, effect);
+      applyEffect(state, effect, option.title);
     }
   }
   if (option.delayedEffects) {
@@ -120,40 +131,49 @@ export function applyDecision(state: NationState, option: DecisionOption, decisi
 }
 
 function simulateNaturalDrift(next: NationState): void {
+  // Helper to record drift deltas safely
+  const record = (stat: keyof NationState, newVal: number, source: string) => {
+    const oldVal = Number(next[stat]);
+    if (typeof newVal !== 'number' || isNaN(newVal)) return;
+    (next as any)[stat] = newVal;
+    recordDelta(next, stat, newVal - oldVal, source);
+  };
+
   // 1. Economic Growth -> Unemployment
   const growthDiff = next.gdpGrowthRate - 0.02;
-  next.unemploymentRate -= growthDiff * 30;
-  next.unemploymentRate += (6.0 - next.unemploymentRate) * 0.03;
-  next.unemploymentRate += seededRandom(-0.15, 0.15);
-  next.unemploymentRate = clamp(next.unemploymentRate);
+  let unemp = next.unemploymentRate;
+  unemp -= growthDiff * 30;
+  unemp += (6.0 - unemp) * 0.03;
+  unemp += seededRandom(-0.15, 0.15);
+  record('unemploymentRate', clamp(unemp), "Economic Growth Feedback");
 
   // 2. Unemployment -> Poverty
   const unempDiff = next.unemploymentRate - 6.0;
   const eduMitigation = (next.educationIndex - 50) * 0.02;
-  next.povertyRate += unempDiff * 0.2 - eduMitigation;
-  next.povertyRate += (15.0 - next.povertyRate) * 0.03;
-  next.povertyRate = clamp(next.povertyRate);
+  let pov = next.povertyRate;
+  pov += unempDiff * 0.2 - eduMitigation;
+  pov += (15.0 - pov) * 0.03;
+  record('povertyRate', clamp(pov), "Unemployment Feedback");
 
   // 3. Poverty & Corruption -> Crime
   const povertyCrimeFactor = (next.povertyRate - 15.0) * 0.02;
   const corruptionCrimeFactor = (next.corruptionLevel - 20.0) * 0.05;
   const militaryMitigation = (next.militaryStrength - 40.0) * 0.05;
-  next.crimeRate += povertyCrimeFactor + corruptionCrimeFactor - militaryMitigation;
-  
-  if (next.approvalRating < 40) { 
-    next.crimeRate += 0.1; 
-  }
-  next.crimeRate += (30.0 - next.crimeRate) * 0.03;
-  next.crimeRate += seededRandom(-0.2, 0.2);
-  next.crimeRate = clamp(next.crimeRate);
+  let cr = next.crimeRate;
+  cr += povertyCrimeFactor + corruptionCrimeFactor - militaryMitigation;
+  if (next.approvalRating < 40) cr += 0.1; 
+  cr += (30.0 - cr) * 0.03;
+  cr += seededRandom(-0.2, 0.2);
+  record('crimeRate', clamp(cr), "Poverty & Corruption Feedback");
 
   // 4. Crime & Corruption -> Foreign Relations
   const crimeFRDrop = (next.crimeRate - 30.0) * 0.02;
   const corruptionFRDrop = (next.corruptionLevel - 20.0) * 0.05;
-  next.foreignRelationsIndex -= (crimeFRDrop + corruptionFRDrop);
-  next.foreignRelationsIndex += (60.0 - next.foreignRelationsIndex) * 0.03;
-  next.foreignRelationsIndex += seededRandom(-0.2, 0.2);
-  next.foreignRelationsIndex = clamp(next.foreignRelationsIndex);
+  let fr = next.foreignRelationsIndex;
+  fr -= (crimeFRDrop + corruptionFRDrop);
+  fr += (60.0 - fr) * 0.03;
+  fr += seededRandom(-0.2, 0.2);
+  record('foreignRelationsIndex', clamp(fr), "Crime & Corruption Feedback");
 
   // 5. Foreign Relations & Education & Corruption & Debt -> GDP Growth
   const frGrowthFactor = (next.foreignRelationsIndex - 60) * 0.0005;
@@ -162,43 +182,48 @@ function simulateNaturalDrift(next: NationState): void {
   const debtToGDP = next.nationalDebt / next.gdp;
   const debtGrowthDrag = Math.max(0, (debtToGDP - 0.5) * 0.02);
   
-  next.gdpGrowthRate = 0.02 + frGrowthFactor + eduGrowthFactor - corruptionGrowthDrag - debtGrowthDrag;
-  next.gdpGrowthRate = Math.max(-0.1, Math.min(0.15, next.gdpGrowthRate));
+  let gdpG = 0.02 + frGrowthFactor + eduGrowthFactor - corruptionGrowthDrag - debtGrowthDrag;
+  gdpG = Math.max(-0.1, Math.min(0.15, gdpG));
+  record('gdpGrowthRate', gdpG, "Geopolitical & Fiscal Feedback");
 
-  next.gdp += next.gdp * next.gdpGrowthRate;
-  next.gdp = Math.max(0, next.gdp);
+  let newGdp = next.gdp + next.gdp * next.gdpGrowthRate;
+  newGdp = Math.max(0, newGdp);
+  record('gdp', newGdp, "Economic Growth Compounding");
 
   // 6. Population Drifts
   const healthPopFactor = (next.healthcareIndex - 50) * 0.0001;
   const envPopDrag = (70 - next.environmentIndex) * 0.0001;
   const popGrowthRate = 0.008 + healthPopFactor - envPopDrag;
-  next.population += next.population * popGrowthRate;
-  next.population = Math.max(0, next.population);
+  let pop = next.population + next.population * popGrowthRate;
+  record('population', Math.max(0, pop), "Demographic Drift");
 
   // Passive Index Drifts
-  next.educationIndex = clamp(next.educationIndex - 0.2);
-  next.healthcareIndex = clamp(next.healthcareIndex - 0.2);
-  next.militaryStrength = clamp(next.militaryStrength - 0.3);
-  next.corruptionLevel = clamp(next.corruptionLevel + 0.1);
-  next.corruptionLevel += (20.0 - next.corruptionLevel) * 0.03;
+  record('educationIndex', clamp(next.educationIndex - 0.2), "Passive Public Service Depreciation");
+  record('healthcareIndex', clamp(next.healthcareIndex - 0.2), "Passive Public Service Depreciation");
+  record('militaryStrength', clamp(next.militaryStrength - 0.3), "Passive Public Service Depreciation");
+  
+  let corr = next.corruptionLevel + 0.1;
+  corr += (20.0 - corr) * 0.03;
+  record('corruptionLevel', clamp(corr), "Bureaucratic Creep");
+  
   const envDecay = 0.1 * (next.gdp / 50000000000);
-  next.environmentIndex = clamp(next.environmentIndex - envDecay + 0.05);
+  record('environmentIndex', clamp(next.environmentIndex - envDecay + 0.05), "Industrial Drag & Natural Recovery");
 
   // Trust Drifts
-  next.militaryTrust += (50.0 - next.militaryTrust) * 0.02;
-  next.businessTrust += (50.0 - next.businessTrust) * 0.02;
-  next.publicTrust += (50.0 - next.publicTrust) * 0.02;
-  next.internationalTrust += (50.0 - next.internationalTrust) * 0.02;
+  record('militaryTrust', clamp(next.militaryTrust + (50.0 - next.militaryTrust) * 0.02), "Faction Trust Normalization");
+  record('businessTrust', clamp(next.businessTrust + (50.0 - next.businessTrust) * 0.02), "Faction Trust Normalization");
+  record('publicTrust', clamp(next.publicTrust + (50.0 - next.publicTrust) * 0.02), "Faction Trust Normalization");
+  record('internationalTrust', clamp(next.internationalTrust + (50.0 - next.internationalTrust) * 0.02), "Faction Trust Normalization");
 
   // Faction Interdependency Rules
   if (next.businessTrust < 30) {
-    next.gdpGrowthRate -= 0.01;
+    record('gdpGrowthRate', next.gdpGrowthRate - 0.01, "Low Business Trust Penalty");
   }
   if (next.publicTrust < 30) {
-    next.approvalRating -= 5;
+    record('approvalRating', clamp(next.approvalRating - 5), "Low Public Trust Unrest");
   }
   if (next.internationalTrust < 30) {
-    next.foreignRelationsIndex -= 5;
+    record('foreignRelationsIndex', clamp(next.foreignRelationsIndex - 5), "Low International Trust Penalty");
   }
 
   // Budget, Reinvestment, and Debt
@@ -221,42 +246,48 @@ function simulateNaturalDrift(next: NationState): void {
       const debtPaydown = netIncome * 0.4;
       const surplusInvestment = netIncome * 0.6;
       
-      next.nationalDebt -= debtPaydown;
-      if (next.nationalDebt < 0) {
-        next.treasuryBudget += Math.abs(next.nationalDebt);
-        next.nationalDebt = 0;
+      let newDebt = next.nationalDebt - debtPaydown;
+      let newTreasury = next.treasuryBudget;
+      if (newDebt < 0) {
+        newTreasury += Math.abs(newDebt);
+        newDebt = 0;
       }
+      record('nationalDebt', newDebt, "Debt Service & Treasury Net Balance");
+      record('treasuryBudget', newTreasury, "Debt Service & Treasury Net Balance");
       
       const investmentPerStat = surplusInvestment / 3;
       const costPerPoint = next.gdp * 0.01;
       const pointsGained = investmentPerStat / costPerPoint;
       
-      next.educationIndex = clamp(next.educationIndex + pointsGained);
-      next.healthcareIndex = clamp(next.healthcareIndex + pointsGained);
-      next.militaryStrength = clamp(next.militaryStrength + pointsGained);
+      record('educationIndex', clamp(next.educationIndex + pointsGained), "Surplus Budget Reinvestment");
+      record('healthcareIndex', clamp(next.healthcareIndex + pointsGained), "Surplus Budget Reinvestment");
+      record('militaryStrength', clamp(next.militaryStrength + pointsGained), "Surplus Budget Reinvestment");
 
     } else {
-      next.nationalDebt -= netIncome;
-      if (next.nationalDebt < 0) {
-        next.treasuryBudget += Math.abs(next.nationalDebt);
-        next.nationalDebt = 0;
+      let newDebt = next.nationalDebt - netIncome;
+      let newTreasury = next.treasuryBudget;
+      if (newDebt < 0) {
+        newTreasury += Math.abs(newDebt);
+        newDebt = 0;
       }
+      record('nationalDebt', newDebt, "Debt Service & Treasury Net Balance");
+      record('treasuryBudget', newTreasury, "Debt Service & Treasury Net Balance");
     }
   } else {
-    next.nationalDebt += Math.abs(netIncome);
+    record('nationalDebt', next.nationalDebt + Math.abs(netIncome), "Debt Service & Treasury Net Balance");
   }
 
   // Austerity Penalty
   if (currentDebtToGDP > 0.6) {
-    next.educationIndex = clamp(next.educationIndex - 0.5);
-    next.healthcareIndex = clamp(next.healthcareIndex - 0.5);
-    next.militaryStrength = clamp(next.militaryStrength - 0.5);
+    record('educationIndex', clamp(next.educationIndex - 0.5), "Austerity Penalty");
+    record('healthcareIndex', clamp(next.healthcareIndex - 0.5), "Austerity Penalty");
+    record('militaryStrength', clamp(next.militaryStrength - 0.5), "Austerity Penalty");
   }
 
   // Cap treasury at 0 if borrowing
   if (next.treasuryBudget < 0) {
-    next.nationalDebt += Math.abs(next.treasuryBudget);
-    next.treasuryBudget = 0;
+    record('nationalDebt', next.nationalDebt + Math.abs(next.treasuryBudget), "Debt Service & Treasury Net Balance");
+    record('treasuryBudget', 0, "Debt Service & Treasury Net Balance");
   }
 
   // Approval Rating
@@ -265,12 +296,13 @@ function simulateNaturalDrift(next: NationState): void {
   const corrPenalty = (next.corruptionLevel - 20) * 0.5;
   const growthBonus = (next.gdpGrowthRate - 0.02) * 500;
 
-  next.approvalRating = 50 - povertyPenalty - unempPenalty - corrPenalty + growthBonus;
-  next.approvalRating += (50.0 - next.approvalRating) * 0.05 + 0.3;
-  next.approvalRating = clamp(next.approvalRating);
+  let appr = 50 - povertyPenalty - unempPenalty - corrPenalty + growthBonus;
+  appr += (50.0 - appr) * 0.05 + 0.3;
+  record('approvalRating', clamp(appr), "Public Approval Feedback");
 
   next.debtCrisis = (next.nationalDebt / next.gdp) > 1.5;
 
+  // Final Clamping guarantees
   next.unemploymentRate = clamp(next.unemploymentRate);
   next.povertyRate = clamp(next.povertyRate);
   next.crimeRate = clamp(next.crimeRate);
@@ -318,7 +350,8 @@ export function resolveTurn(state: NationState, chosenOption?: DecisionOption, d
     recentLogs: [] as string[], 
     resolvedDecisionIds: [...state.resolvedDecisionIds],
     eventFlags: { ...state.eventFlags },
-    activeEscalations: [...state.activeEscalations]
+    activeEscalations: [...state.activeEscalations],
+    recentDeltas: []
   };
   
   if (chosenOption) {
@@ -330,7 +363,7 @@ export function resolveTurn(state: NationState, chosenOption?: DecisionOption, d
     if (effect.targetTurn === next.turn) {
       next.recentLogs.push(`Resolving pending effect: ${effect.description}`);
       for (const eff of effect.effects) {
-        applyEffect(next, eff);
+        applyEffect(next, eff, effect.description);
       }
       if (effect.spawnDecisionId) {
         next.activeSpawnedDecisionId = effect.spawnDecisionId;
@@ -354,7 +387,7 @@ export function resolveTurn(state: NationState, chosenOption?: DecisionOption, d
         const conditionVal = evaluateExpression(next, ev.triggerCondition);
         if (conditionVal > 0) {
           next.recentLogs.push(`Escalation Triggered: ${ev.title} - ${ev.description}`);
-          for (const eff of ev.effects) applyEffect(next, eff);
+          for (const eff of ev.effects) applyEffect(next, eff, ev.title);
           if (ev.setFlag) next.eventFlags[ev.setFlag] = true;
           if (ev.clearFlag) delete next.eventFlags[ev.clearFlag];
           if (ev.escalatesTo && ev.escalateTurns) {
@@ -373,17 +406,15 @@ export function resolveTurn(state: NationState, chosenOption?: DecisionOption, d
   for (const ev of events) {
     if (eventTriggered) break;
     
-    // Skip checking events that are part of an escalation chain manually if they have 0 base prob or just let them be evaluated? 
-    // The prompt says "When a random event ev triggers...". Normal random events shouldn't trigger escalations unless rolled.
     const conditionVal = evaluateExpression(next, ev.triggerCondition);
     if (conditionVal > 0) {
       const weight = evaluateExpression(next, ev.probabilityWeight);
-      if (weight > 0) { // Ensures we don't roll 0-probability events
+      if (weight > 0) {
         const roll = seededRandom(0, 1);
         if (roll < weight) {
           next.recentLogs.push(`Random Event: ${ev.title} - ${ev.description}`);
           for (const eff of ev.effects) {
-            applyEffect(next, eff);
+            applyEffect(next, eff, ev.title);
           }
           if (ev.setFlag) next.eventFlags[ev.setFlag] = true;
           if (ev.clearFlag) delete next.eventFlags[ev.clearFlag];

@@ -36,6 +36,13 @@ export interface NationState {
   activeSpawnedDecisionId: string | null;
   eventFlags: Record<string, boolean>;
   activeEscalations: { eventId: string; targetTurn: number; }[];
+  recentDeltas: StatDelta[];
+}
+
+export interface StatDelta {
+  stat: string;
+  delta: number;
+  source: string;
 }
 
 export interface DecisionOption {
