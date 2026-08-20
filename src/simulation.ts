@@ -297,7 +297,7 @@ function simulateNaturalDrift(next: NationState): void {
   const growthBonus = (next.gdpGrowthRate - 0.02) * 500;
 
   let appr = 50 - povertyPenalty - unempPenalty - corrPenalty + growthBonus;
-  appr += (50.0 - appr) * 0.05 + 0.3;
+  appr += (50.0 - appr) * 0.10 + 0.3;
   record('approvalRating', clamp(appr), "Public Approval Feedback");
 
   next.debtCrisis = (next.nationalDebt / next.gdp) > 1.5;
@@ -450,6 +450,9 @@ export function resolveTurn(state: NationState, chosenOption?: DecisionOption, d
 function checkGameEnd(state: NationState): NationState {
   if (state.gameOver) return state;
 
+  // 3-Turn Grace Period: Give player agency before any premature game-over trigger
+  if (state.turn <= 3) return state;
+
   if (state.nationalDebt / state.gdp > 2.0) {
     state.gameOver = true;
     state.gameResult = 'lose';
@@ -479,7 +482,7 @@ function checkGameEnd(state: NationState): NationState {
   }
 
   if (state.turn === 10) {
-    if (state.approvalRating < 40) {
+    if (state.approvalRating < 35) {
       state.gameOver = true;
       state.gameResult = 'lose';
       state.gameOverReason = 'Election Defeat: The populace voted you out of office.';
