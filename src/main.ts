@@ -5,6 +5,9 @@ import { getRandomOption } from './autoplay';
 import { scenarios, scenarioMetadata, getScenarioInitialState, ScenarioKey } from './scenarios';
 import { getOfficeBgSvg } from './office_scene';
 import { renderNationView } from './nation_view';
+import { saveGameState, loadSave, recordCompletedRun, fetchRunHistory } from './lib/cloudSave';
+import { GameState, RunSummary } from './types/auth';
+import { signInWithGoogle, signOut as supabaseSignOut, getCurrentUser, onAuthStateChange } from './lib/auth';
 
 interface RunHistoryItem {
   id: string;
@@ -124,6 +127,21 @@ const tutorialNextBtn = document.getElementById('tutorial-next-btn') as HTMLButt
 
 // In-game Top Bar Menu Button
 const menuHomeBtn = document.getElementById('menu-home-btn') as HTMLButtonElement | null;
+
+// Auth and Sync status Pill elements
+const syncStatusPill = document.getElementById('sync-status-pill') as HTMLElement | null;
+const authLoginBtn = document.getElementById('auth-login-btn') as HTMLButtonElement | null;
+const authUserMenu = document.getElementById('auth-user-menu') as HTMLElement | null;
+const authAvatar = document.getElementById('auth-avatar') as HTMLImageElement | null;
+const authDropdown = document.getElementById('auth-dropdown') as HTMLElement | null;
+const authUserName = document.getElementById('auth-user-name') as HTMLElement | null;
+const authLogoutBtn = document.getElementById('auth-logout-btn') as HTMLButtonElement | null;
+
+const mobileLoginBtn = document.getElementById('mobile-login-btn') as HTMLButtonElement | null;
+const mobileUserInfo = document.getElementById('mobile-user-info') as HTMLElement | null;
+const mobileAuthAvatar = document.getElementById('mobile-auth-avatar') as HTMLImageElement | null;
+const mobileAuthUserName = document.getElementById('mobile-auth-user-name') as HTMLElement | null;
+const mobileLogoutBtn = document.getElementById('mobile-logout-btn') as HTMLButtonElement | null;
 
 // Mobile Navigation Tab elements
 const mobileTabDesk = document.getElementById('mobile-tab-desk') as HTMLButtonElement | null;
@@ -1012,26 +1030,24 @@ function render() {
   }
 }
 
-function recordGameOverHistory() {
+async function recordGameOverHistory() {
   if (historyRecorded || !state.gameOver) return;
   historyRecorded = true;
 
-  const history = getHistory();
-  const meta = scenarioMetadata[currentScenario];
-  const scenarioName = meta ? meta.name : currentScenario;
-
-  const entry: RunHistoryItem = {
-    id: Date.now().toString(),
-    date: new Date().toLocaleString(),
-    scenario: scenarioName,
-    finalTurn: state.turn,
-    result: state.gameResult === 'win' ? 'win' : 'lose',
-    outcomeReason: state.gameOverReason || 'Administration concluded.',
+  const summary: RunSummary = {
+    scenario_id: currentScenario,
+    turns_survived: state.turn,
+    result: state.gameResult === 'win' ? 'win' : 'loss',
+    loss_reason: state.gameOverReason || 'Administration concluded.',
   };
 
-  history.unshift(entry);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  renderHistoryTable();
+  try {
+    await recordCompletedRun(summary);
+  } catch (err) {
+    console.error('Failed to record completed run:', err);
+  }
+
+  await renderHistoryTable();
 }
 
 function getHistory(): RunHistoryItem[] {
@@ -1046,8 +1062,22 @@ function getHistory(): RunHistoryItem[] {
   }
 }
 
-function renderHistoryTable() {
-  const history = getHistory();
+async function renderHistoryTable() {
+  let history: RunSummary[] = [];
+  try {
+    history = await fetchRunHistory();
+  } catch (err) {
+    console.error('Failed to fetch run history:', err);
+    const raw = localStorage.getItem('nationstate_past_runs');
+    if (raw) {
+      try {
+        history = JSON.parse(raw);
+      } catch (e) {
+        console.error('Failed parsing local run summaries:', e);
+      }
+    }
+  }
+
   if (history.length === 0) {
     historyTable.style.display = 'none';
     noHistoryMsg.style.display = 'block';
@@ -1058,56 +1088,111 @@ function renderHistoryTable() {
   noHistoryMsg.style.display = 'none';
   historyTableBody.innerHTML = history
     .map((item) => {
-      const badgeClass = item.result === 'win' ? 'result-badge win' : 'result-badge lose';
-      const badgeText = item.result === 'win' ? 'WIN' : 'LOSE';
+      const isWin = item.result === 'win';
+      const badgeClass = isWin ? 'result-badge win' : 'result-badge lose';
+      const badgeText = isWin ? 'WIN' : 'LOSE';
+      const meta = scenarioMetadata[item.scenario_id as ScenarioKey];
+      const scenarioName = meta ? meta.name : item.scenario_id;
+      const dateStr = item.ended_at ? new Date(item.ended_at).toLocaleString() : 'N/A';
       return `
         <tr>
-          <td>${item.date}</td>
-          <td><strong>${item.scenario}</strong></td>
-          <td>Turn ${item.finalTurn}</td>
+          <td>${dateStr}</td>
+          <td><strong>${scenarioName}</strong></td>
+          <td>Turn ${item.turns_survived}</td>
           <td><span class="${badgeClass}">${badgeText}</span></td>
-          <td>${item.outcomeReason}</td>
+          <td style="font-size: 11.5px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.loss_reason || ''}">
+            ${item.loss_reason || 'N/A'}
+          </td>
         </tr>
       `;
     })
     .join('');
 }
 
-function saveGame() {
+function updateSyncStatusPill(status: 'local' | 'synced' | 'syncing') {
+  if (!syncStatusPill) return;
+  syncStatusPill.className = `sync-status-pill ${status}`;
+  if (status === 'local') {
+    syncStatusPill.textContent = 'Saved Locally';
+  } else if (status === 'synced') {
+    syncStatusPill.textContent = 'Cloud Synced';
+  } else {
+    syncStatusPill.textContent = 'Syncing...';
+  }
+}
+
+async function saveGame() {
   const decisionIndex = currentDecision ? decisions.findIndex((d) => d.id === currentDecision?.id) : -1;
-  const saveData = {
+  const saveData: GameState = {
+    scenarioId: currentScenario,
     state,
     decisionIndex,
     turnLogsHistory,
-    scenario: currentScenario,
   };
   localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+  
+  updateSyncStatusPill('syncing');
+  try {
+    const res = await saveGameState(saveData);
+    if (res && res.cloudSynced) {
+      updateSyncStatusPill('synced');
+    } else {
+      updateSyncStatusPill('local');
+    }
+  } catch (err) {
+    console.error('Failed to sync save state to cloud:', err);
+    updateSyncStatusPill('local');
+  }
   updateSaveControls();
 }
 
-function loadGame(): boolean {
-  const raw = localStorage.getItem(SAVE_KEY);
-  if (!raw) return false;
+async function loadGame(): Promise<boolean> {
+  let saveData: GameState | null = null;
+  updateSyncStatusPill('syncing');
+  try {
+    saveData = await loadSave(currentScenario);
+  } catch (err) {
+    console.error('Cloud load failed, trying local cache fallback:', err);
+  }
+
+  if (!saveData) {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) {
+      try {
+        saveData = JSON.parse(raw);
+      } catch (e) {
+        console.error('Failed parsing legacy save:', e);
+      }
+    }
+  }
+
+  if (!saveData || !saveData.state) {
+    updateSyncStatusPill('local');
+    return false;
+  }
 
   try {
-    const saveData = JSON.parse(raw);
-    if (!saveData.state) return false;
-
     state = saveData.state;
     turnLogsHistory.length = 0;
     if (Array.isArray(saveData.turnLogsHistory)) {
       turnLogsHistory.push(...saveData.turnLogsHistory);
     }
-    if (saveData.scenario && scenarios[saveData.scenario as ScenarioKey]) {
-      currentScenario = saveData.scenario as ScenarioKey;
+    
+    const scId = saveData.scenarioId || (saveData as any).scenario;
+    if (scId && scenarios[scId as ScenarioKey]) {
+      currentScenario = scId as ScenarioKey;
       scenarioSelect.value = currentScenario;
       if (mobileScenarioSelect) mobileScenarioSelect.value = currentScenario;
     }
+
     if (typeof saveData.decisionIndex === 'number' && saveData.decisionIndex >= 0 && decisions[saveData.decisionIndex]) {
       currentDecision = decisions[saveData.decisionIndex];
     } else {
       currentDecision = undefined;
     }
+
+    const user = await getCurrentUser();
+    updateSyncStatusPill(user ? 'synced' : 'local');
 
     historyRecorded = !!state.gameOver;
     render();
@@ -1115,17 +1200,33 @@ function loadGame(): boolean {
     return true;
   } catch (e) {
     console.error('Failed to load save state:', e);
+    updateSyncStatusPill('local');
     return false;
   }
 }
 
 function deleteSave() {
   localStorage.removeItem(SAVE_KEY);
+  localStorage.removeItem(`nationstate_active_save_${currentScenario}`);
   updateSaveControls();
 }
 
 function updateHomeContinueButton() {
-  const raw = localStorage.getItem(SAVE_KEY);
+  let hasSave = localStorage.getItem(SAVE_KEY) !== null;
+  let activeSaveKey = SAVE_KEY;
+
+  if (!hasSave) {
+    for (const key of Object.keys(scenarios)) {
+      const k = `nationstate_active_save_${key}`;
+      if (localStorage.getItem(k) !== null) {
+        hasSave = true;
+        activeSaveKey = k;
+        break;
+      }
+    }
+  }
+
+  const raw = localStorage.getItem(activeSaveKey);
   if (!raw) {
     homeContinueBtn.disabled = true;
     if (homeContinueText) homeContinueText.textContent = 'Continue Game (No Active Save)';
@@ -1133,7 +1234,7 @@ function updateHomeContinueButton() {
   }
   try {
     const saveData = JSON.parse(raw);
-    const sKey = (saveData.scenario as ScenarioKey) || 'default';
+    const sKey = (saveData.scenarioId as ScenarioKey) || (saveData.scenario as ScenarioKey) || 'default';
     const sName = scenarioMetadata[sKey] ? scenarioMetadata[sKey].name : 'Golden Era';
     const turn = saveData.state?.turn || 1;
     homeContinueBtn.disabled = false;
@@ -1169,7 +1270,8 @@ function selectHomeScenario(scenarioKey: ScenarioKey) {
 }
 
 function updateSaveControls() {
-  const hasSave = localStorage.getItem(SAVE_KEY) !== null;
+  const localKey = `nationstate_active_save_${currentScenario}`;
+  const hasSave = localStorage.getItem(localKey) !== null || localStorage.getItem(SAVE_KEY) !== null;
   resumeBtn.style.display = hasSave ? 'inline-flex' : 'none';
   loadBtn.disabled = !hasSave;
   deleteSaveBtn.disabled = !hasSave;
@@ -1318,9 +1420,9 @@ if (mobileSaveBtn) {
 }
 
 if (mobileLoadBtn) {
-  mobileLoadBtn.addEventListener('click', () => {
+  mobileLoadBtn.addEventListener('click', async () => {
     if (isAutoplayRunning) stopAutoplay();
-    if (loadGame()) {
+    if (await loadGame()) {
       turnLogsHistory.push('[Save/Load] Game loaded successfully.');
       renderLogs();
       updateSaveControls();
@@ -1348,9 +1450,9 @@ if (mobilePastRunsBtn) {
 }
 
 // Save / Load Controls
-resumeBtn.addEventListener('click', () => {
+resumeBtn.addEventListener('click', async () => {
   if (isAutoplayRunning) stopAutoplay();
-  if (loadGame()) {
+  if (await loadGame()) {
     turnLogsHistory.push('[Save/Load] Resumed saved game.');
     renderLogs();
   }
@@ -1362,9 +1464,9 @@ saveBtn.addEventListener('click', () => {
   renderLogs();
 });
 
-loadBtn.addEventListener('click', () => {
+loadBtn.addEventListener('click', async () => {
   if (isAutoplayRunning) stopAutoplay();
-  if (loadGame()) {
+  if (await loadGame()) {
     turnLogsHistory.push('[Save/Load] Game loaded successfully.');
     renderLogs();
   }
@@ -1433,8 +1535,8 @@ homeStartPresidencyBtn.addEventListener('click', () => {
   hideHomeScreen();
 });
 
-homeContinueBtn.addEventListener('click', () => {
-  if (loadGame()) {
+homeContinueBtn.addEventListener('click', async () => {
+  if (await loadGame()) {
     hideHomeScreen();
     turnLogsHistory.push('[Save/Load] Resumed saved game from Title Screen.');
     renderLogs();
@@ -1693,3 +1795,125 @@ updateHomeContinueButton();
 
 turnLogsHistory.push(`=== Game Initialized (Scenario: ${scenarioMetadata[currentScenario].name}) ===`);
 render();
+
+// ========================================================
+// Supabase Authentication & Real-Time Cloud Sync UI Wiring
+// ========================================================
+
+// Toggle user dropdown on desktop
+if (authUserMenu && authDropdown) {
+  authUserMenu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    authDropdown.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (authUserMenu && !authUserMenu.contains(target)) {
+      authDropdown.classList.remove('open');
+    }
+  });
+}
+
+// Google Sign-In Actions
+if (authLoginBtn) {
+  authLoginBtn.addEventListener('click', async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error('Sign-in failed:', err);
+    }
+  });
+}
+if (mobileLoginBtn) {
+  mobileLoginBtn.addEventListener('click', async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error('Mobile Sign-in failed:', err);
+    }
+  });
+}
+
+// Sign-Out Actions
+if (authLogoutBtn) {
+  authLogoutBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    try {
+      await supabaseSignOut();
+      authDropdown?.classList.remove('open');
+    } catch (err) {
+      console.error('Sign-out failed:', err);
+    }
+  });
+}
+if (mobileLogoutBtn) {
+  mobileLogoutBtn.addEventListener('click', async () => {
+    try {
+      await supabaseSignOut();
+      if (mobileActionsDrawer) mobileActionsDrawer.classList.remove('open');
+    } catch (err) {
+      console.error('Mobile Sign-out failed:', err);
+    }
+  });
+}
+
+// Auth State Shift Listener
+onAuthStateChange(async (user) => {
+  if (user) {
+    // 1. Update Desktop Header UI
+    if (authLoginBtn) authLoginBtn.style.display = 'none';
+    if (authUserMenu) authUserMenu.style.display = 'flex';
+    if (authAvatar) {
+      authAvatar.src = user.user_metadata.avatar_url || 'https://lh3.googleusercontent.com/a/default-user=s96-c';
+    }
+    if (authUserName) {
+      authUserName.textContent = user.user_metadata.full_name || user.email || 'User';
+    }
+
+    // 2. Update Mobile Drawer UI
+    if (mobileLoginBtn) mobileLoginBtn.style.display = 'none';
+    if (mobileUserInfo) mobileUserInfo.style.display = 'flex';
+    if (mobileAuthAvatar) {
+      mobileAuthAvatar.src = user.user_metadata.avatar_url || 'https://lh3.googleusercontent.com/a/default-user=s96-c';
+    }
+    if (mobileAuthUserName) {
+      mobileAuthUserName.textContent = user.user_metadata.full_name || user.email || 'User';
+    }
+
+    updateSyncStatusPill('synced');
+    
+    // 3. Attempt to fetch active cloud save to sync state
+    try {
+      const cloudSaveState = await loadSave(currentScenario);
+      if (cloudSaveState) {
+        state = cloudSaveState.state;
+        turnLogsHistory.length = 0;
+        if (Array.isArray(cloudSaveState.turnLogsHistory)) {
+          turnLogsHistory.push(...cloudSaveState.turnLogsHistory);
+        }
+        render();
+      }
+    } catch (e) {
+      console.error('Failed to sync cloud state on auth change:', e);
+    }
+  } else {
+    // 1. Reset Desktop Header UI
+    if (authLoginBtn) authLoginBtn.style.display = 'inline-flex';
+    if (authUserMenu) authUserMenu.style.display = 'none';
+    if (authAvatar) authAvatar.src = '';
+    if (authUserName) authUserName.textContent = 'User';
+
+    // 2. Reset Mobile Drawer UI
+    if (mobileLoginBtn) mobileLoginBtn.style.display = 'block';
+    if (mobileUserInfo) mobileUserInfo.style.display = 'none';
+    if (mobileAuthAvatar) mobileAuthAvatar.src = '';
+    if (mobileAuthUserName) mobileAuthUserName.textContent = 'User';
+
+    updateSyncStatusPill('local');
+  }
+
+  // Refresh controls & table elements dynamically
+  updateSaveControls();
+  renderHistoryTable();
+});

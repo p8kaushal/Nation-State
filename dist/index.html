@@ -116,6 +116,129 @@
       white-space: nowrap;
     }
 
+    /* Cloud Sync status pill & Auth Controls styling */
+    .sync-status-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 6px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      height: 20px;
+    }
+    .sync-status-pill.local {
+      background-color: #fef3c7;
+      color: #d97706;
+      border: 1px solid #fcd34d;
+    }
+    .sync-status-pill.synced {
+      background-color: #d1fae5;
+      color: #059669;
+      border: 1px solid #6ee7b7;
+    }
+    .sync-status-pill.syncing {
+      background-color: #dbeafe;
+      color: #2563eb;
+      border: 1px solid #93c5fd;
+      animation: pulse-sync 1.5s infinite ease-in-out;
+    }
+    @keyframes pulse-sync {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .auth-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+    .btn-google {
+      background: #ffffff;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      font-weight: 600;
+      padding: 2px 8px;
+      font-size: 10px;
+      height: 24px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+      transition: background-color 0.15s;
+    }
+    .btn-google:hover {
+      background: #f9fafb;
+    }
+    .auth-user-menu {
+      position: relative;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    .auth-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid var(--federal-navy);
+      object-fit: cover;
+    }
+    .auth-dropdown {
+      display: none;
+      position: absolute;
+      top: 30px;
+      right: 0;
+      background: #ffffff;
+      border: 1px solid var(--bureaucracy-grey);
+      border-radius: 4px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      width: 130px;
+      z-index: 50;
+      flex-direction: column;
+    }
+    .auth-dropdown.open {
+      display: flex;
+    }
+    .auth-user-name {
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--bureaucracy-dark);
+      border-bottom: 1px solid #f3f4f6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .dropdown-item {
+      background: none;
+      border: none;
+      padding: 6px 10px;
+      font-size: 10px;
+      text-align: left;
+      cursor: pointer;
+      color: #ef4444;
+      width: 100%;
+    }
+    .dropdown-item:hover {
+      background: #fef2f2;
+    }
+
+    /* Mobile specific auth layout */
+    .mobile-drawer-section.auth-section {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
     .scenario-control {
       display: flex;
       align-items: center;
@@ -2548,7 +2671,7 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="/assets/index-BmtE9m1F.js"></script>
+  <script type="module" crossorigin src="/assets/index-BSVIbdFm.js"></script>
 </head>
 <body>
   <!-- Cabinet Chamber Home Screen Overlay -->
@@ -2741,6 +2864,21 @@
         </div>
       </div>
       <div class="top-bar-right">
+        <!-- Cloud Sync status pill -->
+        <div id="sync-status-pill" class="sync-status-pill local">Saved Locally</div>
+        
+        <!-- Auth controls -->
+        <div id="auth-controls" class="auth-controls">
+          <button id="auth-login-btn" class="btn-google">Sign In</button>
+          <div id="auth-user-menu" class="auth-user-menu" style="display: none;">
+            <img id="auth-avatar" class="auth-avatar" src="" alt="Avatar" />
+            <div id="auth-dropdown" class="auth-dropdown">
+              <span id="auth-user-name" class="auth-user-name">User</span>
+              <button id="auth-logout-btn" class="dropdown-item">Sign Out</button>
+            </div>
+          </div>
+        </div>
+
         <div class="save-load-group">
           <button id="menu-home-btn" class="ctrl-btn btn-secondary" title="Return to Title / Main Menu">🏛️ Menu</button>
           <button id="resume-btn" class="ctrl-btn btn-success" style="display: none;" title="Resume previous saved session">Resume Game</button>
@@ -2770,6 +2908,18 @@
         <button id="mobile-load-btn" class="ctrl-btn btn-secondary" title="Load saved game">📂 Load</button>
         <button id="mobile-delete-save-btn" class="ctrl-btn btn-danger" title="Delete current save file">🗑️ Delete Save</button>
         <button id="mobile-past-runs-btn" class="ctrl-btn btn-secondary" title="View past administration records">📜 Past Runs</button>
+      </div>
+      <div class="mobile-drawer-section auth-section">
+        <div id="mobile-auth-container">
+          <button id="mobile-login-btn" class="btn-google" style="width: 100%; justify-content: center;">Sign In with Google</button>
+          <div id="mobile-user-info" style="display: none; align-items: center; justify-content: space-between; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img id="mobile-auth-avatar" class="auth-avatar" src="" alt="Avatar" />
+              <span id="mobile-auth-user-name" style="font-size: 11px; font-weight: 700; color: var(--bureaucracy-dark);">User</span>
+            </div>
+            <button id="mobile-logout-btn" class="dropdown-item" style="width: auto; padding: 4px 8px; margin: 0;">Sign Out</button>
+          </div>
+        </div>
       </div>
     </div>
 
