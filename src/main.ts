@@ -143,6 +143,12 @@ const mobileAuthAvatar = document.getElementById('mobile-auth-avatar') as HTMLIm
 const mobileAuthUserName = document.getElementById('mobile-auth-user-name') as HTMLElement | null;
 const mobileLogoutBtn = document.getElementById('mobile-logout-btn') as HTMLButtonElement | null;
 
+const homeLoginBtn = document.getElementById('home-login-btn') as HTMLButtonElement | null;
+const homeProfileCard = document.getElementById('home-profile-card') as HTMLElement | null;
+const homeAvatar = document.getElementById('home-avatar') as HTMLImageElement | null;
+const homeUserName = document.getElementById('home-user-name') as HTMLElement | null;
+const homeLogoutBtn = document.getElementById('home-logout-btn') as HTMLButtonElement | null;
+
 // Mobile Navigation Tab elements
 const mobileTabDesk = document.getElementById('mobile-tab-desk') as HTMLButtonElement | null;
 const mobileTabStats = document.getElementById('mobile-tab-stats') as HTMLButtonElement | null;
@@ -1834,6 +1840,15 @@ if (mobileLoginBtn) {
     }
   });
 }
+if (homeLoginBtn) {
+  homeLoginBtn.addEventListener('click', async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error('Home Sign-in failed:', err);
+    }
+  });
+}
 
 // Sign-Out Actions
 if (authLogoutBtn) {
@@ -1854,6 +1869,15 @@ if (mobileLogoutBtn) {
       if (mobileActionsDrawer) mobileActionsDrawer.classList.remove('open');
     } catch (err) {
       console.error('Mobile Sign-out failed:', err);
+    }
+  });
+}
+if (homeLogoutBtn) {
+  homeLogoutBtn.addEventListener('click', async () => {
+    try {
+      await supabaseSignOut();
+    } catch (err) {
+      console.error('Home Sign-out failed:', err);
     }
   });
 }
@@ -1881,9 +1905,19 @@ onAuthStateChange(async (user) => {
       mobileAuthUserName.textContent = user.user_metadata.full_name || user.email || 'User';
     }
 
+    // 3. Update Home Screen UI
+    if (homeLoginBtn) homeLoginBtn.style.display = 'none';
+    if (homeProfileCard) homeProfileCard.style.display = 'flex';
+    if (homeAvatar) {
+      homeAvatar.src = user.user_metadata.avatar_url || 'https://lh3.googleusercontent.com/a/default-user=s96-c';
+    }
+    if (homeUserName) {
+      homeUserName.textContent = user.user_metadata.full_name || user.email || 'User';
+    }
+
     updateSyncStatusPill('synced');
     
-    // 3. Attempt to fetch active cloud save to sync state
+    // 4. Attempt to fetch active cloud save to sync state
     try {
       const cloudSaveState = await loadSave(currentScenario);
       if (cloudSaveState) {
@@ -1909,6 +1943,12 @@ onAuthStateChange(async (user) => {
     if (mobileUserInfo) mobileUserInfo.style.display = 'none';
     if (mobileAuthAvatar) mobileAuthAvatar.src = '';
     if (mobileAuthUserName) mobileAuthUserName.textContent = 'User';
+
+    // 3. Reset Home Screen UI
+    if (homeLoginBtn) homeLoginBtn.style.display = 'block';
+    if (homeProfileCard) homeProfileCard.style.display = 'none';
+    if (homeAvatar) homeAvatar.src = '';
+    if (homeUserName) homeUserName.textContent = 'User';
 
     updateSyncStatusPill('local');
   }

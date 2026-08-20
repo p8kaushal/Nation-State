@@ -1701,6 +1701,85 @@
       transform: none;
     }
 
+    .home-auth-section {
+      width: 100%;
+      margin-top: 8px;
+    }
+    
+    .home-menu-btn.btn-google-home {
+      background: #FFFFFF;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      width: 100%;
+    }
+    
+    .home-menu-btn.btn-google-home:hover {
+      background: #f9fafb;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+    }
+    
+    .home-profile-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--bureaucracy-border);
+      border-radius: 6px;
+    }
+    
+    .home-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--federal-navy);
+      object-fit: cover;
+    }
+    
+    .home-profile-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      text-align: left;
+    }
+    
+    .home-profile-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--charcoal-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .home-profile-status {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--stability-teal);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .btn-danger-home {
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      background: none;
+      border: 1px solid #fca5a5;
+      color: #ef4444;
+      transition: all 0.15s;
+    }
+    
+    .btn-danger-home:hover {
+      background: #fef2f2;
+      border-color: #ef4444;
+    }
+
     .home-menu-btn.btn-secondary {
       background: var(--bg-card-subtle);
       color: var(--federal-navy);
@@ -2671,7 +2750,7 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="/assets/index-BSVIbdFm.js"></script>
+  <script type="module" crossorigin src="/assets/index-16qqDzOS.js"></script>
 </head>
 <body>
   <!-- Cabinet Chamber Home Screen Overlay -->
@@ -2708,6 +2787,22 @@
             <span>📖</span>
             <span>How to Play</span>
           </button>
+        </div>
+
+        <!-- Home Auth Section -->
+        <div id="home-auth-section" class="home-auth-section">
+          <button id="home-login-btn" class="home-menu-btn btn-google-home">
+            <span>🔑</span>
+            <span>Sign In with Google for Cloud Saves</span>
+          </button>
+          <div id="home-profile-card" class="home-profile-card" style="display: none;">
+            <img id="home-avatar" class="home-avatar" src="" alt="Avatar" />
+            <div class="home-profile-info">
+              <span id="home-user-name" class="home-profile-name">User</span>
+              <span class="home-profile-status">Cloud Sync Active</span>
+            </div>
+            <button id="home-logout-btn" class="btn-danger-home">Sign Out</button>
+          </div>
         </div>
       </div>
 
