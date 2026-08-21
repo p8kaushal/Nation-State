@@ -8,8 +8,12 @@ import { renderNationView } from './nation_view';
 import { saveGameState, loadSave, recordCompletedRun, fetchRunHistory } from './lib/cloudSave';
 import { GameState, RunSummary } from './types/auth';
 import { signInWithGoogle, signOut as supabaseSignOut, getCurrentUser, onAuthStateChange } from './lib/auth';
-import { checkTurnAchievements, checkEndGameAchievements, unlockAchievements } from './lib/achievements';
+import { checkTurnAchievements, checkEndGameAchievements, unlockAchievements, masterAchievements } from './lib/achievements';
 import { renderReportCardModal } from './components/ReportCardModal';
+
+function clamp(val: number, min = 0, max = 100): number {
+  return Math.max(min, Math.min(max, val));
+}
 
 interface RunHistoryItem {
   id: string;
@@ -40,6 +44,7 @@ let isLogExpanded = false;
 // Header elements & Scenario selector
 const scenarioSelect = document.getElementById('scenario-select') as HTMLSelectElement;
 const turnDisplay = document.getElementById('turn-display') as HTMLElement;
+const inspectionModePill = document.getElementById('inspection-mode-pill') as HTMLElement | null;
 const resumeBtn = document.getElementById('resume-btn') as HTMLButtonElement;
 const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
 const loadBtn = document.getElementById('load-btn') as HTMLButtonElement;
@@ -92,6 +97,7 @@ const historyTable = document.getElementById('history-table') as HTMLTableElemen
 const historyTableBody = document.getElementById('history-table-body') as HTMLTableSectionElement;
 const noHistoryMsg = document.getElementById('no-history-msg') as HTMLElement;
 const clearHistoryBtn = document.getElementById('clear-history-btn') as HTMLButtonElement;
+const historyBackToReportBtn = document.getElementById('history-back-to-report-btn') as HTMLButtonElement | null;
 
 // Autoplay elements
 const autoplayBtn = document.getElementById('autoplay-btn') as HTMLButtonElement;
@@ -191,6 +197,7 @@ function setMobileTab(tab: MobileTab) {
 
 // Game Over Overlay elements
 const gameOverOverlay = document.getElementById('game-over-overlay') as HTMLElement;
+const hudLockOverlay = document.getElementById('hud-lock-overlay') as HTMLElement | null;
 const gameOverTitle = document.getElementById('game-over-title') as HTMLElement;
 const gameOverReason = document.getElementById('game-over-reason') as HTMLElement;
 const restartBtn = document.getElementById('restart-btn') as HTMLButtonElement;
@@ -1029,10 +1036,26 @@ function render() {
     btns.forEach((btn) => ((btn as HTMLButtonElement).disabled = true));
     nextTurnBtn.disabled = true;
 
+    if (hudLockOverlay) {
+      const isWin = state.gameResult === 'win';
+      hudLockOverlay.style.display = 'block';
+      hudLockOverlay.className = isWin ? 'win' : 'lose';
+    }
+    if (inspectionModePill) {
+      inspectionModePill.style.display = 'block';
+    }
+
     recordGameOverAndShowReportCard();
   } else {
     gameOverOverlay.style.display = 'none';
     nextTurnBtn.disabled = false;
+    if (hudLockOverlay) {
+      hudLockOverlay.style.display = 'none';
+      hudLockOverlay.className = '';
+    }
+    if (inspectionModePill) {
+      inspectionModePill.style.display = 'none';
+    }
   }
 }
 
@@ -1070,15 +1093,27 @@ async function showReportCard() {
   if (menuBtn) {
     menuBtn.addEventListener('click', () => {
       reportCardModal.style.display = 'none';
+      historyModal.style.display = 'none';
+      if (hudLockOverlay) {
+        hudLockOverlay.style.display = 'none';
+        hudLockOverlay.className = '';
+      }
       showHomeScreen();
     });
   }
 
   if (runsBtn) {
     runsBtn.addEventListener('click', () => {
-      reportCardModal.style.display = 'none';
+      // Keep reportCardModal active/visible in background
       historyModal.style.display = 'flex';
       renderHistoryTable();
+      if (historyBackToReportBtn) {
+        historyBackToReportBtn.style.display = 'block';
+        historyBackToReportBtn.onclick = () => {
+          historyModal.style.display = 'none';
+          if (historyBackToReportBtn) historyBackToReportBtn.style.display = 'none';
+        };
+      }
     });
   }
 
@@ -1107,11 +1142,100 @@ async function recordGameOverAndShowReportCard() {
   console.log('[DEBUG] Game Over detected. Opening Report Card modal...');
   console.log('Game ended. Reason:', state.gameOverReason, 'Win:', state.gameResult === 'win');
 
+  const isWin = state.gameResult === 'win';
+  if (!isWin) {
+    turnLogsHistory.push(`[SYSTEM] REGIME TERMINATED / DEPORTED`);
+    renderLogs();
+  }
+
+  const currentSavedState: GameState = {
+    scenarioId: currentScenario,
+    state,
+    decisionIndex: currentDecision ? decisions.findIndex((d) => d.id === currentDecision?.id) : -1,
+    turnLogsHistory,
+  };
+
+  const turnUnlocks = checkTurnAchievements(currentSavedState);
+  const endUnlocks = checkEndGameAchievements(currentSavedState, isWin);
+  const allNewlyUnlockedIds = Array.from(new Set([...turnUnlocks, ...endUnlocks]));
+
+  // Calculate grade and archetype Title matching ReportCardModal.ts
+  const gdpVal = state.gdp;
+  const debtVal = state.nationalDebt;
+  const growthRate = state.gdpGrowthRate;
+  const treasuryVal = state.treasuryBudget;
+
+  const debtRatio = debtVal / Math.max(1, gdpVal);
+  const debtScore = clamp(100 - debtRatio * 80);
+  const growthScore = clamp(50 + growthRate * 1000);
+  
+  const treasuryScore = treasuryVal >= 0
+    ? clamp(50 + (treasuryVal / 50_000_000_000) * 50)
+    : clamp(50 + (treasuryVal / 20_000_000_000) * 50);
+  
+  let fiscalScore = Math.round(0.4 * debtScore + 0.3 * growthScore + 0.3 * treasuryScore);
+  if (state.debtCrisis) fiscalScore = Math.min(fiscalScore, 30);
+  fiscalScore = clamp(fiscalScore);
+
+  const crimeVal = state.crimeRate;
+  const militaryStr = state.militaryStrength;
+  const crimeScore = clamp(100 - crimeVal);
+  const securityScore = clamp(Math.round(0.5 * crimeScore + 0.5 * militaryStr));
+
+  const povertyVal = state.povertyRate;
+  const healthIdx = state.healthcareIndex;
+  const eduIdx = state.educationIndex;
+  const povertyScore = clamp(100 - povertyVal * 2.5);
+  const welfareScore = clamp(Math.round((healthIdx + eduIdx + povertyScore) / 3));
+
+  const ecologyScore = clamp(Math.round(state.environmentIndex));
+  const factionsScore = clamp(Math.round((state.militaryTrust + state.businessTrust + state.publicTrust + state.internationalTrust) / 4));
+  const diplomacyScore = clamp(Math.round(state.foreignRelationsIndex));
+
+  const avgScore = (fiscalScore + securityScore + welfareScore + ecologyScore + factionsScore + diplomacyScore) / 6;
+  const turnsSurvived = state.turn;
+  const survivalRatio = Math.min(1.0, turnsSurvived / 20.0);
+  const finalGradeScore = avgScore * (0.4 + 0.6 * survivalRatio);
+
+  let letterGrade = 'F';
+  if (finalGradeScore >= 85) letterGrade = 'S';
+  else if (finalGradeScore >= 70) letterGrade = 'A';
+  else if (finalGradeScore >= 55) letterGrade = 'B';
+  else if (finalGradeScore >= 40) letterGrade = 'C';
+  else if (finalGradeScore >= 25) letterGrade = 'D';
+
+  let archetypeTitle = 'Deposed Statesman';
+  if (isWin) {
+    if (gdpVal >= 110_000_000_000 || treasuryVal >= 40_000_000_000) {
+      archetypeTitle = 'Technocratic Capitalist';
+    } else if (state.environmentIndex >= 70 && welfareScore >= 70) {
+      archetypeTitle = 'Eco-Social Reformer';
+    } else if (state.publicTrust < 35 && militaryStr >= 70) {
+      archetypeTitle = 'Authoritarian Regent';
+    } else {
+      archetypeTitle = 'Centrist Pragmatist';
+    }
+  } else {
+    const overReason = state.gameOverReason ?? '';
+    if (overReason.includes('Coup')) {
+      archetypeTitle = 'Deposed Statesman';
+    } else if (overReason.includes('Economic')) {
+      archetypeTitle = 'Bankrupt Regulator';
+    } else {
+      archetypeTitle = 'Failed Executive';
+    }
+  }
+
   const summary: RunSummary = {
     scenario_id: currentScenario,
     turns_survived: state.turn,
-    result: state.gameResult === 'win' ? 'win' : 'loss',
+    result: isWin ? 'win' : 'loss',
     loss_reason: state.gameOverReason || 'Administration concluded.',
+    grade: letterGrade,
+    performanceTitle: archetypeTitle,
+    badgesEarned: allNewlyUnlockedIds,
+    finalStats: state,
+    endReason: state.gameOverReason || 'Administration concluded.',
   };
 
   // 1. Immediately trigger the modal UI (synchronous mount)
@@ -1169,26 +1293,74 @@ async function renderHistoryTable() {
   historyTable.style.display = 'table';
   noHistoryMsg.style.display = 'none';
   historyTableBody.innerHTML = history
-    .map((item) => {
+    .map((item, index) => {
       const isWin = item.result === 'win';
       const badgeClass = isWin ? 'result-badge win' : 'result-badge lose';
       const badgeText = isWin ? 'WIN' : 'LOSE';
       const meta = scenarioMetadata[item.scenario_id as ScenarioKey];
       const scenarioName = meta ? meta.name : item.scenario_id;
       const dateStr = item.ended_at ? new Date(item.ended_at).toLocaleString() : 'N/A';
+      const gradeText = item.grade || 'F';
+
+      const badgesEarnedHtml = (item.badgesEarned || [])
+        .map((badgeId) => {
+          const ach = masterAchievements.find((a) => a.id === badgeId);
+          return ach ? `<span class="history-badge-chip" title="${ach.title}: ${ach.description}">${ach.icon}</span>` : '';
+        })
+        .join('');
+
       return `
         <tr>
           <td>${dateStr}</td>
           <td><strong>${scenarioName}</strong></td>
           <td>Turn ${item.turns_survived}</td>
           <td><span class="${badgeClass}">${badgeText}</span></td>
-          <td style="font-size: 11.5px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.loss_reason || ''}">
+          <td><span class="run-grade-badge badge-${gradeText}">${gradeText}</span></td>
+          <td><div style="display: flex; gap: 4px;">${badgesEarnedHtml || 'N/A'}</div></td>
+          <td style="font-size: 11.5px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.loss_reason || ''}">
             ${item.loss_reason || 'N/A'}
+          </td>
+          <td>
+            <button class="inspect-run-btn ctrl-btn btn-secondary" data-run-index="${index}" style="padding: 4px 8px; font-size: 11px; min-height: auto;">Inspect</button>
           </td>
         </tr>
       `;
     })
     .join('');
+
+  // Bind click listeners to all inspect buttons
+  const inspectBtns = historyTableBody.querySelectorAll('.inspect-run-btn');
+  inspectBtns.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const idxStr = (e.currentTarget as HTMLButtonElement).getAttribute('data-run-index');
+      if (idxStr !== null) {
+        const idx = parseInt(idxStr, 10);
+        const selectedRun = history[idx];
+        if (selectedRun) {
+          showHistoricalReportCard(selectedRun);
+        }
+      }
+    });
+  });
+}
+
+function showHistoricalReportCard(run: RunSummary) {
+  if (!reportCardModal) return;
+
+  // Render modal in read-only archive mode (passing historicalRun)
+  reportCardModal.innerHTML = renderReportCardModal(undefined, run.result === 'win', run.badgesEarned, run);
+  reportCardModal.style.display = 'flex';
+  historyModal.style.display = 'none';
+
+  // Bind Back to Past Runs action
+  const backBtn = document.getElementById('report-card-archive-back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      reportCardModal.style.display = 'none';
+      historyModal.style.display = 'flex';
+      renderHistoryTable();
+    });
+  }
 }
 
 function updateSyncStatusPill(status: 'local' | 'synced' | 'syncing') {
@@ -1395,6 +1567,20 @@ function resetGameToScenario(scenarioKey: ScenarioKey) {
   historyRecorded = false;
   turnLogsHistory.length = 0;
 
+  if (hudLockOverlay) {
+    hudLockOverlay.style.display = 'none';
+    hudLockOverlay.className = '';
+  }
+  if (inspectionModePill) {
+    inspectionModePill.style.display = 'none';
+  }
+  if (reportCardModal) {
+    reportCardModal.style.display = 'none';
+  }
+  if (historyModal) {
+    historyModal.style.display = 'none';
+  }
+
   const meta = scenarioMetadata[currentScenario];
   const scenarioName = meta ? meta.name : currentScenario;
   turnLogsHistory.push(`=== Scenario Selected: ${scenarioName} ===`);
@@ -1563,6 +1749,7 @@ deleteSaveBtn.addEventListener('click', () => {
 // Past Runs Modal
 pastRunsBtn.addEventListener('click', () => {
   renderHistoryTable();
+  if (historyBackToReportBtn) historyBackToReportBtn.style.display = 'none';
   historyModal.style.display = 'flex';
 });
 
@@ -1627,6 +1814,7 @@ homeContinueBtn.addEventListener('click', async () => {
 
 homePastRunsBtn.addEventListener('click', () => {
   renderHistoryTable();
+  if (historyBackToReportBtn) historyBackToReportBtn.style.display = 'none';
   historyModal.style.display = 'flex';
 });
 
@@ -1968,11 +2156,23 @@ if (homeLogoutBtn) {
 // Auth State Shift Listener
 onAuthStateChange(async (user) => {
   if (user) {
+    const avatarUrl = user.user_metadata.avatar_url || user.user_metadata.picture || 'https://lh3.googleusercontent.com/a/default-user=s96-c';
+    const firstInitial = (user.user_metadata.full_name || user.email || 'U').charAt(0).toUpperCase();
+    const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="100%" height="100%" fill="%231C4B46"/><text x="50%" y="55%" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="white" dominant-baseline="middle" text-anchor="middle">${firstInitial}</text></svg>`;
+
+    const configureAvatar = (imgEl: HTMLImageElement | null) => {
+      if (!imgEl) return;
+      imgEl.src = avatarUrl;
+      imgEl.onerror = () => {
+        imgEl.src = fallbackSvg;
+      };
+    };
+
     // 1. Update Desktop Header UI
     if (authLoginBtn) authLoginBtn.style.display = 'none';
     if (authUserMenu) authUserMenu.style.display = 'flex';
     if (authAvatar) {
-      authAvatar.src = user.user_metadata.avatar_url || 'https://lh3.googleusercontent.com/a/default-user=s96-c';
+      configureAvatar(authAvatar);
     }
     if (authUserName) {
       authUserName.textContent = user.user_metadata.full_name || user.email || 'User';
@@ -1982,7 +2182,7 @@ onAuthStateChange(async (user) => {
     if (mobileLoginBtn) mobileLoginBtn.style.display = 'none';
     if (mobileUserInfo) mobileUserInfo.style.display = 'flex';
     if (mobileAuthAvatar) {
-      mobileAuthAvatar.src = user.user_metadata.avatar_url || 'https://lh3.googleusercontent.com/a/default-user=s96-c';
+      configureAvatar(mobileAuthAvatar);
     }
     if (mobileAuthUserName) {
       mobileAuthUserName.textContent = user.user_metadata.full_name || user.email || 'User';
@@ -1992,7 +2192,7 @@ onAuthStateChange(async (user) => {
     if (homeLoginBtn) homeLoginBtn.style.display = 'none';
     if (homeProfileCard) homeProfileCard.style.display = 'flex';
     if (homeAvatar) {
-      homeAvatar.src = user.user_metadata.avatar_url || 'https://lh3.googleusercontent.com/a/default-user=s96-c';
+      configureAvatar(homeAvatar);
     }
     if (homeUserName) {
       homeUserName.textContent = user.user_metadata.full_name || user.email || 'User';

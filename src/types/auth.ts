@@ -15,6 +15,8 @@ export interface GameSave {
   updated_at: string;
 }
 
+import { NationState } from '../types';
+
 export interface RunHistory {
   id: string;
   user_id: string;
@@ -23,9 +25,13 @@ export interface RunHistory {
   result: 'win' | 'loss';
   loss_reason: string | null;
   ended_at: string;
-}
 
-import { NationState } from '../types';
+  grade?: string;
+  performanceTitle?: string;
+  badgesEarned?: string[];
+  finalStats?: NationState;
+  endReason?: string;
+}
 
 export interface GameState {
   scenarioId: string;
@@ -42,4 +48,10 @@ export interface RunSummary {
   result: 'win' | 'loss';
   loss_reason: string | null;
   ended_at?: string;
+
+  grade?: string;
+  performanceTitle?: string;
+  badgesEarned?: string[];
+  finalStats?: NationState;
+  endReason?: string;
 }

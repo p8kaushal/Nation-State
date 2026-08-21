@@ -2464,6 +2464,54 @@
       margin-top: auto;
     }
 
+    .run-grade-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      color: #FFFFFF;
+      text-align: center;
+      min-width: 20px;
+    }
+    .run-grade-badge.badge-S { background: #fbbf24; }
+    .run-grade-badge.badge-A { background: #0d9488; }
+    .run-grade-badge.badge-B { background: #2563eb; }
+    .run-grade-badge.badge-C { background: #4f46e5; }
+    .run-grade-badge.badge-D { background: #7c3aed; }
+    .run-grade-badge.badge-F { background: #dc2626; }
+
+    .history-badge-chip {
+      font-size: 14px;
+      margin-right: 4px;
+      cursor: help;
+    }
+
+    #hud-lock-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none !important;
+      z-index: 10 !important;
+      display: none;
+      transition: all 0.3s ease;
+    }
+
+    #hud-lock-overlay.lose {
+      display: block;
+      background: radial-gradient(circle, rgba(128,0,32,0.15) 0%, rgba(20,5,10,0.6) 100%);
+      box-shadow: inset 0 0 100px rgba(128,0,32,0.8);
+      border: 2px solid rgba(128,0,32,0.5);
+      backdrop-filter: saturate(50%);
+    }
+
+    #hud-lock-overlay.win {
+      display: block;
+      background: radial-gradient(circle, rgba(28,75,70,0.1) 0%, rgba(5,15,10,0.45) 100%);
+      box-shadow: inset 0 0 100px rgba(28,75,70,0.7);
+      border: 2px solid rgba(28,75,70,0.5);
+      backdrop-filter: saturate(125%);
+    }
+
     /* ========================================================
        12. Responsive Navigation & Mobile Pass (<= 768px)
        ======================================================== */
@@ -3034,7 +3082,7 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="/assets/index-Dt4YZ5OF.js"></script>
+  <script type="module" crossorigin src="/assets/index-CX2sCZYa.js"></script>
 </head>
 <body>
   <!-- Cabinet Chamber Home Screen Overlay -->
@@ -3080,7 +3128,7 @@
             <span>Sign In with Google for Cloud Saves</span>
           </button>
           <div id="home-profile-card" class="home-profile-card" style="display: none;">
-            <img id="home-avatar" class="home-avatar" src="" alt="Avatar" />
+            <img id="home-avatar" class="home-avatar" src="" alt="Avatar" referrerpolicy="no-referrer" />
             <div class="home-profile-info">
               <span id="home-user-name" class="home-profile-name">User</span>
               <span class="home-profile-status">Cloud Sync Active</span>
@@ -3250,7 +3298,7 @@
         <div id="auth-controls" class="auth-controls">
           <button id="auth-login-btn" class="btn-google">Sign In</button>
           <div id="auth-user-menu" class="auth-user-menu" style="display: none;">
-            <img id="auth-avatar" class="auth-avatar" src="" alt="Avatar" />
+            <img id="auth-avatar" class="auth-avatar" src="" alt="Avatar" referrerpolicy="no-referrer" />
             <div id="auth-dropdown" class="auth-dropdown">
               <span id="auth-user-name" class="auth-user-name">User</span>
               <button id="auth-logout-btn" class="dropdown-item">Sign Out</button>
@@ -3268,6 +3316,7 @@
           <button id="debug-report-card-btn" class="ctrl-btn btn-secondary" title="Debug: Show Report Card modal">Debug Card</button>
         </div>
         <button id="mobile-actions-toggle-btn" class="ctrl-btn btn-secondary" style="display: none;" title="Open mobile actions drawer">⚙️ Actions</button>
+        <div id="inspection-mode-pill" class="turn-badge" style="background-color: var(--cabinet-crimson, #800020); color: white; display: none; margin-right: 8px; font-weight: bold; letter-spacing: 0.5px; font-size: 11px;">MANDATE TERMINATED — INSPECTION ACTIVE</div>
         <div id="turn-display" class="turn-badge">Turn 1</div>
       </div>
     </header>
@@ -3294,7 +3343,7 @@
           <button id="mobile-login-btn" class="btn-google" style="width: 100%; justify-content: center;">Sign In with Google</button>
           <div id="mobile-user-info" style="display: none; align-items: center; justify-content: space-between; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <img id="mobile-auth-avatar" class="auth-avatar" src="" alt="Avatar" />
+              <img id="mobile-auth-avatar" class="auth-avatar" src="" alt="Avatar" referrerpolicy="no-referrer" />
               <span id="mobile-auth-user-name" style="font-size: 11px; font-weight: 700; color: var(--bureaucracy-dark);">User</span>
             </div>
             <button id="mobile-logout-btn" class="dropdown-item" style="width: auto; padding: 4px 8px; margin: 0;">Sign Out</button>
@@ -3329,6 +3378,7 @@
       <section class="center-stage">
         <div class="decision-desk-container">
           <div id="office-bg-container" class="office-bg-container"></div>
+          <div id="hud-lock-overlay"></div>
           <div id="decision-container" class="memo-container">
             <!-- Memorandum Sheet Header -->
             <div class="memo-header-banner">
@@ -3428,6 +3478,7 @@
       <div class="modal-header">
         <h2>📜 Past Administration Records</h2>
         <div style="display: flex; align-items: center; gap: 10px;">
+          <button id="history-back-to-report-btn" class="ctrl-btn btn-primary" style="font-size: 11px; padding: 4px 8px; display: none;">← Back to Report Card</button>
           <button id="clear-history-btn" class="ctrl-btn btn-secondary" style="font-size: 11px; padding: 4px 8px;">Clear History</button>
           <button id="close-history-btn" class="modal-close-btn" title="Close">&times;</button>
         </div>
@@ -3440,7 +3491,10 @@
               <th>Scenario</th>
               <th>Final Turn</th>
               <th>Result</th>
+              <th>Grade</th>
+              <th>Badges</th>
               <th>Outcome Reason</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="history-table-body"></tbody>

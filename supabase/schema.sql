@@ -18,7 +18,6 @@ CREATE TABLE public.game_saves (
   CONSTRAINT game_saves_user_scenario_unique UNIQUE (user_id, scenario_id)
 );
 
--- Create Run History table
 CREATE TABLE public.run_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -26,7 +25,12 @@ CREATE TABLE public.run_history (
   turns_survived int4 NOT NULL,
   result text NOT NULL CHECK (result IN ('win', 'loss')),
   loss_reason text,
-  ended_at timestamptz DEFAULT now() NOT NULL
+  ended_at timestamptz DEFAULT now() NOT NULL,
+  grade text,
+  performance_title text,
+  badges_earned text[],
+  final_stats jsonb,
+  end_reason text
 );
 
 -- Enable Row Level Security (RLS) on all tables

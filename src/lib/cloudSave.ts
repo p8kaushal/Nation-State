@@ -138,6 +138,11 @@ export async function recordCompletedRun(summary: RunSummary): Promise<void> {
           result: summary.result,
           loss_reason: summary.loss_reason,
           ended_at: currentRun.ended_at,
+          grade: summary.grade,
+          performance_title: summary.performanceTitle,
+          badges_earned: summary.badgesEarned,
+          final_stats: summary.finalStats,
+          end_reason: summary.endReason,
         });
 
       if (error) {
@@ -183,6 +188,11 @@ export async function fetchRunHistory(): Promise<RunSummary[]> {
           result: r.result,
           loss_reason: r.loss_reason,
           ended_at: r.ended_at,
+          grade: r.grade,
+          performanceTitle: r.performance_title,
+          badgesEarned: r.badges_earned,
+          finalStats: r.final_stats,
+          endReason: r.end_reason,
         }));
 
         // Deduplicate using ended_at, scenario, and turns as composite map keys

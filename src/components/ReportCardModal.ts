@@ -1,4 +1,4 @@
-import { GameState } from '../types/auth';
+import { GameState, RunSummary } from '../types/auth';
 import { masterAchievements } from '../lib/achievements';
 import { ScenarioKey, scenarioMetadata } from '../scenarios';
 
@@ -24,14 +24,18 @@ function formatCurrency(value: number): string {
 
 /**
  * Evaluates performance metrics, grades, archetypes, and compiles the post-game card HTML markup defensively.
+ * Supports both live active gameplay and historical read-only runs inspection.
  */
 export function renderReportCardModal(
   gameState: GameState | undefined | null,
   isWin: boolean,
-  unlockedBadgeIds: string[] | undefined | null
+  unlockedBadgeIds: string[] | undefined | null,
+  historicalRun?: RunSummary | null
 ): string {
-  const state = gameState?.state;
-  const badgeIds = unlockedBadgeIds || [];
+  const isArchive = !!historicalRun;
+  const state = isArchive ? historicalRun?.finalStats : gameState?.state;
+  const badgeIds = isArchive ? (historicalRun?.badgesEarned || []) : (unlockedBadgeIds || []);
+  const winState = isArchive ? (historicalRun?.result === 'win') : isWin;
 
   // 1. Calculate the 6 Composite Health Scores (matching nation_view.ts logic defensively)
   const gdpVal = state?.gdp ?? 1;
@@ -82,35 +86,41 @@ export function renderReportCardModal(
   const finalGradeScore = avgScore * (0.4 + 0.6 * survivalRatio);
 
   // Determine Letter Grade
-  let letterGrade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F' = 'F';
-  if (finalGradeScore >= 85) letterGrade = 'S';
-  else if (finalGradeScore >= 70) letterGrade = 'A';
-  else if (finalGradeScore >= 55) letterGrade = 'B';
-  else if (finalGradeScore >= 40) letterGrade = 'C';
-  else if (finalGradeScore >= 25) letterGrade = 'D';
+  let letterGrade: string = isArchive ? (historicalRun?.grade || 'F') : 'F';
+  if (!isArchive) {
+    let computedLetter: 'S' | 'A' | 'B' | 'C' | 'D' | 'F' = 'F';
+    if (finalGradeScore >= 85) computedLetter = 'S';
+    else if (finalGradeScore >= 70) computedLetter = 'A';
+    else if (finalGradeScore >= 55) computedLetter = 'B';
+    else if (finalGradeScore >= 40) computedLetter = 'C';
+    else if (finalGradeScore >= 25) computedLetter = 'D';
+    letterGrade = computedLetter;
+  }
 
   // 3. Determine Governance Archetype Title
-  let archetypeTitle = 'Deposed Statesman';
-  const environmentIdx = state?.environmentIndex ?? 0;
-  if (isWin) {
-    if (gdpVal >= 110_000_000_000 || treasuryVal >= 40_000_000_000) {
-      archetypeTitle = 'Technocratic Capitalist';
-    } else if (environmentIdx >= 70 && welfareScore >= 70) {
-      archetypeTitle = 'Eco-Social Reformer';
-    } else if (pubTrust < 35 && militaryStr >= 70) {
-      archetypeTitle = 'Authoritarian Regent';
+  let archetypeTitle = isArchive ? (historicalRun?.performanceTitle || 'Deposed Statesman') : 'Deposed Statesman';
+  if (!isArchive) {
+    const environmentIdx = state?.environmentIndex ?? 0;
+    if (winState) {
+      if (gdpVal >= 110_000_000_000 || treasuryVal >= 40_000_000_000) {
+        archetypeTitle = 'Technocratic Capitalist';
+      } else if (environmentIdx >= 70 && welfareScore >= 70) {
+        archetypeTitle = 'Eco-Social Reformer';
+      } else if (pubTrust < 35 && militaryStr >= 70) {
+        archetypeTitle = 'Authoritarian Regent';
+      } else {
+        archetypeTitle = 'Centrist Pragmatist';
+      }
     } else {
-      archetypeTitle = 'Centrist Pragmatist';
-    }
-  } else {
-    // Loss fallback archetypes
-    const overReason = state?.gameOverReason ?? '';
-    if (overReason.includes('Coup')) {
-      archetypeTitle = 'Deposed Statesman';
-    } else if (overReason.includes('Economic')) {
-      archetypeTitle = 'Bankrupt Regulator';
-    } else {
-      archetypeTitle = 'Failed Executive';
+      // Loss fallback archetypes
+      const overReason = state?.gameOverReason ?? '';
+      if (overReason.includes('Coup')) {
+        archetypeTitle = 'Deposed Statesman';
+      } else if (overReason.includes('Economic')) {
+        archetypeTitle = 'Bankrupt Regulator';
+      } else {
+        archetypeTitle = 'Failed Executive';
+      }
     }
   }
 
@@ -136,19 +146,21 @@ export function renderReportCardModal(
       </div>
     `;
 
-  const scenarioId = gameState?.scenarioId ?? 'default';
+  const scenarioId = isArchive ? (historicalRun?.scenario_id ?? 'default') : (gameState?.scenarioId ?? 'default');
   const scenarioMeta = scenarioMetadata[scenarioId as ScenarioKey];
   const scenarioName = scenarioMeta ? scenarioMeta.name : scenarioId;
+
+  const gameOverReason = isArchive ? (historicalRun?.loss_reason || 'Administration concluded.') : (state?.gameOverReason || 'Administration concluded.');
 
   return `
     <div class="report-card-card">
       <div class="report-card-seal">★ REPUBLIC OF NATION STATE ★</div>
       
       <div class="report-card-header">
-        <h2 class="report-card-outcome ${isWin ? 'win' : 'lose'}">
-          ${isWin ? 'Mandate Fulfilled' : 'Regime Collapse'}
+        <h2 class="report-card-outcome ${winState ? 'win' : 'lose'}">
+          ${winState ? 'Mandate Fulfilled' : 'Regime Collapse'}
         </h2>
-        <p class="report-card-reason">${state?.gameOverReason || 'Administration concluded.'}</p>
+        <p class="report-card-reason">${gameOverReason}</p>
       </div>
 
       <div class="report-card-divider">❖</div>
@@ -233,9 +245,12 @@ export function renderReportCardModal(
 
       <!-- Actions footer -->
       <div class="report-card-actions">
-        <button id="report-card-menu-btn" class="ctrl-btn btn-primary">Title Menu</button>
-        <button id="report-card-runs-btn" class="ctrl-btn btn-secondary">Past Runs</button>
-        <button id="report-card-close-btn" class="ctrl-btn btn-danger">Close</button>
+        ${isArchive 
+          ? `<button id="report-card-archive-back-btn" class="ctrl-btn btn-primary" style="width: 100%;">← Back to Past Runs</button>`
+          : `<button id="report-card-menu-btn" class="ctrl-btn btn-primary">Title Menu</button>
+             <button id="report-card-runs-btn" class="ctrl-btn btn-secondary">Past Runs</button>
+             <button id="report-card-close-btn" class="ctrl-btn btn-danger">Close</button>`
+        }
       </div>
     </div>
   `;
