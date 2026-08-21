@@ -2205,7 +2205,7 @@
       box-shadow: 0 0 0 4px #FAF8F5, 0 0 0 5px var(--bureaucracy-grey), 0 16px 40px rgba(11, 27, 61, 0.4);
       width: 92%;
       max-width: 580px;
-      max-height: 90vh;
+      max-height: 85vh;
       overflow-y: auto;
       padding: 24px;
       display: flex;
@@ -2485,6 +2485,11 @@
       font-size: 14px;
       margin-right: 4px;
       cursor: help;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .6; }
     }
 
     #hud-lock-overlay {
@@ -3315,7 +3320,6 @@
           <button id="debug-report-card-btn" class="ctrl-btn btn-secondary" title="Debug: Show Report Card modal">Debug Card</button>
         </div>
         <button id="mobile-actions-toggle-btn" class="ctrl-btn btn-secondary" style="display: none;" title="Open mobile actions drawer">⚙️ Actions</button>
-        <div id="inspection-mode-pill" class="turn-badge" style="background-color: var(--cabinet-crimson, #800020); color: white; display: none; margin-right: 8px; font-weight: bold; letter-spacing: 0.5px; font-size: 11px;">MANDATE TERMINATED — INSPECTION ACTIVE</div>
         <div id="turn-display" class="turn-badge">Turn 1</div>
       </div>
     </header>

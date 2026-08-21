@@ -44,7 +44,6 @@ let isLogExpanded = false;
 // Header elements & Scenario selector
 const scenarioSelect = document.getElementById('scenario-select') as HTMLSelectElement;
 const turnDisplay = document.getElementById('turn-display') as HTMLElement;
-const inspectionModePill = document.getElementById('inspection-mode-pill') as HTMLElement | null;
 const resumeBtn = document.getElementById('resume-btn') as HTMLButtonElement;
 const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
 const loadBtn = document.getElementById('load-btn') as HTMLButtonElement;
@@ -845,6 +844,54 @@ function renderDecision() {
     btn.addEventListener('click', () => handleTurn(option, dec.id));
     decisionOptions.appendChild(btn);
   });
+
+  if (state.gameOver) {
+    // 1. Disable all option buttons on the memorandum card
+    const btns = decisionOptions.querySelectorAll('.executive-option-btn');
+    btns.forEach((b) => ((b as HTMLButtonElement).disabled = true));
+
+    // 2. Append Government Finality Seal below choices list
+    const isWin = state.gameResult === 'win';
+    const sealDiv = document.createElement('div');
+    if (isWin) {
+      sealDiv.style.border = '4px double rgba(16, 185, 129, 0.85)';
+      sealDiv.style.color = '#059669';
+      sealDiv.style.fontFamily = 'Georgia, serif';
+      sealDiv.style.fontWeight = 'bold';
+      sealDiv.style.textTransform = 'uppercase';
+      sealDiv.style.letterSpacing = '1.5px';
+      sealDiv.style.padding = '12px';
+      sealDiv.style.borderRadius = '6px';
+      sealDiv.style.boxShadow = 'var(--shadow-md)';
+      sealDiv.style.transform = 'rotate(1deg)';
+      sealDiv.style.opacity = '0.9';
+      sealDiv.style.backgroundColor = 'rgba(6, 78, 59, 0.1)';
+      sealDiv.style.backdropFilter = 'blur(2px)';
+      sealDiv.style.textAlign = 'center';
+      sealDiv.style.marginTop = '14px';
+      sealDiv.style.fontSize = '11.5px';
+      sealDiv.innerHTML = '★ MANDATE FULFILLED ★<br><span style="font-size: 8.5px; font-weight: normal; letter-spacing: 0.5px;">EXECUTIVE ORDER CONCLUDED / INSPECTION MODE</span>';
+    } else {
+      sealDiv.style.border = '4px double rgba(220, 38, 38, 0.85)';
+      sealDiv.style.color = '#dc2626';
+      sealDiv.style.fontFamily = 'Georgia, serif';
+      sealDiv.style.fontWeight = 'bold';
+      sealDiv.style.textTransform = 'uppercase';
+      sealDiv.style.letterSpacing = '1.5px';
+      sealDiv.style.padding = '12px';
+      sealDiv.style.borderRadius = '6px';
+      sealDiv.style.boxShadow = 'var(--shadow-md)';
+      sealDiv.style.transform = 'rotate(-2deg)';
+      sealDiv.style.opacity = '0.9';
+      sealDiv.style.backgroundColor = 'rgba(127, 29, 29, 0.1)';
+      sealDiv.style.backdropFilter = 'blur(2px)';
+      sealDiv.style.textAlign = 'center';
+      sealDiv.style.marginTop = '14px';
+      sealDiv.style.fontSize = '11.5px';
+      sealDiv.innerHTML = '★ MANDATE TERMINATED ★<br><span style="font-size: 8.5px; font-weight: normal; letter-spacing: 0.5px;">REGIME DISCHARGED / INSPECTION MODE</span>';
+    }
+    decisionOptions.appendChild(sealDiv);
+  }
 }
 
 interface LogEntryGroup {
@@ -1041,9 +1088,6 @@ function render() {
       hudLockOverlay.style.display = 'block';
       hudLockOverlay.className = isWin ? 'win' : 'lose';
     }
-    if (inspectionModePill) {
-      inspectionModePill.style.display = 'block';
-    }
 
     recordGameOverAndShowReportCard();
   } else {
@@ -1052,9 +1096,6 @@ function render() {
     if (hudLockOverlay) {
       hudLockOverlay.style.display = 'none';
       hudLockOverlay.className = '';
-    }
-    if (inspectionModePill) {
-      inspectionModePill.style.display = 'none';
     }
   }
 }
@@ -1570,9 +1611,6 @@ function resetGameToScenario(scenarioKey: ScenarioKey) {
   if (hudLockOverlay) {
     hudLockOverlay.style.display = 'none';
     hudLockOverlay.className = '';
-  }
-  if (inspectionModePill) {
-    inspectionModePill.style.display = 'none';
   }
   if (reportCardModal) {
     reportCardModal.style.display = 'none';
