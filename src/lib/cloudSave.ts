@@ -141,7 +141,7 @@ export async function recordCompletedRun(summary: RunSummary): Promise<void> {
         });
 
       if (error) {
-        console.error('Failed to upload completed run to Supabase:', error);
+        console.warn(`[Supabase Fallback] Error code ${error.code} during database insert: ${error.message}`);
       }
     }
   } catch (err) {

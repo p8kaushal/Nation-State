@@ -8,6 +8,8 @@ import { renderNationView } from './nation_view';
 import { saveGameState, loadSave, recordCompletedRun, fetchRunHistory } from './lib/cloudSave';
 import { GameState, RunSummary } from './types/auth';
 import { signInWithGoogle, signOut as supabaseSignOut, getCurrentUser, onAuthStateChange } from './lib/auth';
+import { checkTurnAchievements, checkEndGameAchievements, unlockAchievements } from './lib/achievements';
+import { renderReportCardModal } from './components/ReportCardModal';
 
 interface RunHistoryItem {
   id: string;
@@ -148,6 +150,8 @@ const homeProfileCard = document.getElementById('home-profile-card') as HTMLElem
 const homeAvatar = document.getElementById('home-avatar') as HTMLImageElement | null;
 const homeUserName = document.getElementById('home-user-name') as HTMLElement | null;
 const homeLogoutBtn = document.getElementById('home-logout-btn') as HTMLButtonElement | null;
+const reportCardModal = document.getElementById('report-card-modal') as HTMLElement | null;
+const debugReportCardBtn = document.getElementById('debug-report-card-btn') as HTMLButtonElement | null;
 
 // Mobile Navigation Tab elements
 const mobileTabDesk = document.getElementById('mobile-tab-desk') as HTMLButtonElement | null;
@@ -1020,25 +1024,88 @@ function render() {
   renderLogs();
 
   if (state.gameOver) {
-    gameOverOverlay.style.display = 'flex';
-    gameOverTitle.textContent = state.gameResult === 'win' ? 'PRESIDENCY COMPLETE' : 'ADMINISTRATION OVER';
-    gameOverTitle.className = `game-over-title ${state.gameResult || ''}`;
-    gameOverReason.textContent = state.gameOverReason || '';
-
+    gameOverOverlay.style.display = 'none';
     const btns = document.querySelectorAll('.executive-option-btn');
     btns.forEach((btn) => ((btn as HTMLButtonElement).disabled = true));
     nextTurnBtn.disabled = true;
 
-    recordGameOverHistory();
+    recordGameOverAndShowReportCard();
   } else {
     gameOverOverlay.style.display = 'none';
     nextTurnBtn.disabled = false;
   }
 }
 
-async function recordGameOverHistory() {
+async function showReportCard() {
+  if (!reportCardModal) return;
+
+  const decisionIndex = currentDecision ? decisions.findIndex((d) => d.id === currentDecision?.id) : -1;
+  const currentSavedState: GameState = {
+    scenarioId: currentScenario,
+    state,
+    decisionIndex,
+    turnLogsHistory,
+  };
+
+  const isWin = state.gameResult === 'win';
+
+  // 1. Evaluate unlocked achievements
+  const turnUnlocks = checkTurnAchievements(currentSavedState);
+  const endUnlocks = checkEndGameAchievements(currentSavedState, isWin);
+  const allNewlyUnlockedIds = Array.from(new Set([...turnUnlocks, ...endUnlocks]));
+
+  // 2. Render and Display Modal (Synchronous / Immediate)
+  try {
+    reportCardModal.innerHTML = renderReportCardModal(currentSavedState, isWin, allNewlyUnlockedIds);
+    reportCardModal.style.display = 'flex';
+  } catch (err) {
+    console.error('Failed to render report card modal:', err);
+  }
+
+  // 3. Bind Modal Actions
+  const menuBtn = document.getElementById('report-card-menu-btn');
+  const runsBtn = document.getElementById('report-card-runs-btn');
+  const closeBtn = document.getElementById('report-card-close-btn');
+
+  if (menuBtn) {
+    menuBtn.addEventListener('click', () => {
+      reportCardModal.style.display = 'none';
+      showHomeScreen();
+    });
+  }
+
+  if (runsBtn) {
+    runsBtn.addEventListener('click', () => {
+      reportCardModal.style.display = 'none';
+      historyModal.style.display = 'flex';
+      renderHistoryTable();
+    });
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      reportCardModal.style.display = 'none';
+    });
+  }
+
+  // 4. Background fire-and-forget sync for achievements
+  if (allNewlyUnlockedIds.length > 0) {
+    (async () => {
+      try {
+        await unlockAchievements(allNewlyUnlockedIds);
+      } catch (err) {
+        console.warn('Background achievements sync failed, falling back to local:', err);
+      }
+    })();
+  }
+}
+
+async function recordGameOverAndShowReportCard() {
   if (historyRecorded || !state.gameOver) return;
   historyRecorded = true;
+
+  console.log('[DEBUG] Game Over detected. Opening Report Card modal...');
+  console.log('Game ended. Reason:', state.gameOverReason, 'Win:', state.gameResult === 'win');
 
   const summary: RunSummary = {
     scenario_id: currentScenario,
@@ -1047,13 +1114,22 @@ async function recordGameOverHistory() {
     loss_reason: state.gameOverReason || 'Administration concluded.',
   };
 
+  // 1. Immediately trigger the modal UI (synchronous mount)
   try {
-    await recordCompletedRun(summary);
+    showReportCard();
   } catch (err) {
-    console.error('Failed to record completed run:', err);
+    console.error('Failed to trigger showReportCard immediately:', err);
   }
 
-  await renderHistoryTable();
+  // 2. Execute background cloud save/record completed run without blocking UI
+  (async () => {
+    try {
+      await recordCompletedRun(summary);
+      await renderHistoryTable();
+    } catch (err) {
+      console.warn('Background run completion sync failed, falling back to local:', err);
+    }
+  })();
 }
 
 function getHistory(): RunHistoryItem[] {
@@ -1758,6 +1834,13 @@ nextTurnBtn.addEventListener('click', () => {
 restartBtn.addEventListener('click', () => {
   resetGameToScenario(currentScenario);
 });
+
+if (debugReportCardBtn) {
+  debugReportCardBtn.addEventListener('click', () => {
+    console.log('[DIAGNOSTIC] Manual trigger clicked. Opening Report Card modal.');
+    showReportCard();
+  });
+}
 
 modalDeleteSaveBtn.addEventListener('click', () => {
   deleteSave();

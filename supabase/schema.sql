@@ -105,3 +105,26 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Create User Achievements table
+CREATE TABLE public.user_achievements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  achievement_id text NOT NULL,
+  unlocked_at timestamptz DEFAULT now() NOT NULL,
+  CONSTRAINT user_achievements_user_achievement_unique UNIQUE (user_id, achievement_id)
+);
+
+-- Enable Row Level Security (RLS) on user_achievements
+ALTER TABLE public.user_achievements ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can select their own achievements."
+  ON public.user_achievements FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own achievements."
+  ON public.user_achievements FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+

@@ -5,10 +5,13 @@ import { User } from '@supabase/supabase-js';
  * Initiates Google OAuth Sign-In flow.
  */
 export async function signInWithGoogle() {
+  const redirectUrl = window.location.origin.replace(/\/$/, '');
+  console.log('[AUTH] Initiating OAuth flow with callback target:', redirectUrl);
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin,
+      redirectTo: redirectUrl,
     },
   });
   if (error) throw error;
