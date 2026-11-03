@@ -38,6 +38,7 @@ export interface GameState {
   state: NationState;
   decisionIndex: number;
   turnLogsHistory: string[];
+  savedAt?: string;
 }
 
 export interface RunSummary {

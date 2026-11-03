@@ -1,6 +1,7 @@
 import { Achievement } from '../types/achievements';
 import { GameState } from '../types/auth';
 import { supabase } from './supabaseClient';
+import { storageKey } from './storage';
 
 /**
  * Master catalog of all achievements.
@@ -149,7 +150,7 @@ export function checkEndGameAchievements(gameState: GameState, isWin: boolean): 
 export async function unlockAchievements(achievementIds: string[]): Promise<string[]> {
   if (achievementIds.length === 0) return [];
 
-  const localKey = 'nationstate_unlocked_achievements';
+  const localKey = storageKey('nationstate_unlocked_achievements');
   let localUnlocked: string[] = [];
 
   // Parse local list
@@ -184,7 +185,7 @@ export async function unlockAchievements(achievementIds: string[]): Promise<stri
 
       const { error: dbError } = await supabase
         .from('user_achievements')
-        .upsert(rows, { onConflict: 'user_id, achievement_id' });
+        .upsert(rows, { onConflict: 'user_id, achievement_id', ignoreDuplicates: true });
 
       if (dbError) {
         console.error('Failed to sync unlocked achievements with Supabase:', dbError);
@@ -201,7 +202,7 @@ export async function unlockAchievements(achievementIds: string[]): Promise<stri
  * Fetches and merges user achievements from local cache and remote database.
  */
 export async function fetchUserAchievements(): Promise<string[]> {
-  const localKey = 'nationstate_unlocked_achievements';
+  const localKey = storageKey('nationstate_unlocked_achievements');
   let localUnlocked: string[] = [];
 
   // Parse local list

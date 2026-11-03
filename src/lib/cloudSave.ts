@@ -1,28 +1,42 @@
 import { supabase } from './supabaseClient';
 import { GameState, RunSummary } from '../types/auth';
+import { getStorageAccount, storageKey } from './storage';
+import { chooseSave } from './saveSelection';
+
+// Serialize mutations so an older autosave cannot arrive after a newer one.
+let mutationQueue: Promise<void> = Promise.resolve();
+function enqueue<T>(operation: () => Promise<T>): Promise<T> {
+  const result = mutationQueue.then(operation);
+  mutationQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
 
 /**
  * Saves the current game state to local storage and upserts it to Supabase if authenticated.
  */
 export async function saveGameState(state: GameState): Promise<{ success: boolean; cloudSynced: boolean }> {
-  const localKey = `nationstate_active_save_${state.scenarioId}`;
+  state = JSON.parse(JSON.stringify(state)) as GameState;
+  const accountId = getStorageAccount();
+  const localKey = storageKey(`nationstate_active_save_${state.scenarioId}`);
+  let localSaved = false;
   
   // 1. Local Save (Instant & Reliable)
   try {
     localStorage.setItem(localKey, JSON.stringify(state));
+    localSaved = true;
   } catch (err) {
     console.error('Failed to write save state to localStorage:', err);
   }
 
-  // 2. Cloud Save (Sync if online & authenticated)
+  return enqueue(async () => {
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError) {
       // Soft fail, user might not be logged in or session expired
-      return { success: true, cloudSynced: false };
+      return { success: localSaved, cloudSynced: false };
     }
 
-    if (user) {
+    if (user && accountId === user.id && getStorageAccount() === accountId) {
       const { error: upsertError } = await supabase
         .from('game_saves')
         .upsert(
@@ -40,7 +54,7 @@ export async function saveGameState(state: GameState): Promise<{ success: boolea
 
       if (upsertError) {
         console.error('Supabase active save upload failed:', upsertError);
-        return { success: true, cloudSynced: false };
+        return { success: localSaved, cloudSynced: false };
       }
       return { success: true, cloudSynced: true };
     }
@@ -48,28 +62,38 @@ export async function saveGameState(state: GameState): Promise<{ success: boolea
     console.error('Network error during cloud save sync:', err);
   }
 
-  return { success: true, cloudSynced: false };
+  return { success: localSaved, cloudSynced: false };
+  });
 }
 
 /**
- * Loads the active game save for a scenario, prioritizing the cloud save and falling back to localStorage.
+ * Loads the newest known save, retaining legacy local saves whose age is unknown.
  */
 export async function loadSave(scenarioId: string): Promise<GameState | null> {
-  const localKey = `nationstate_active_save_${scenarioId}`;
+  const localKey = storageKey(`nationstate_active_save_${scenarioId}`);
+  const accountId = getStorageAccount();
+  let localState: GameState | null = null;
+  try {
+    const raw = localStorage.getItem(localKey);
+    if (raw) localState = JSON.parse(raw) as GameState;
+  } catch (err) { console.error("Failed to parse local save:", err); }
+  await mutationQueue;
 
   // 1. Attempt Cloud Load
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (!authError && user) {
+    if (!authError && user && user.id === accountId) {
       const { data, error } = await supabase
         .from('game_saves')
-        .select('game_state_json')
+        .select('game_state_json, updated_at')
         .eq('user_id', user.id)
         .eq('scenario_id', scenarioId)
         .maybeSingle();
 
       if (!error && data && data.game_state_json) {
+        if (getStorageAccount() !== accountId) return null;
         const cloudState = data.game_state_json as GameState;
+        if (chooseSave(localState, cloudState, data.updated_at) === localState) return localState;
         // Sync local cache
         try {
           localStorage.setItem(localKey, JSON.stringify(cloudState));
@@ -83,6 +107,7 @@ export async function loadSave(scenarioId: string): Promise<GameState | null> {
     console.error('Cloud load failed, falling back to localStorage:', err);
   }
 
+  if (getStorageAccount() !== accountId) return null;
   // 2. Local Fallback
   try {
     const localRaw = localStorage.getItem(localKey);
@@ -100,7 +125,7 @@ export async function loadSave(scenarioId: string): Promise<GameState | null> {
  * Records a completed game run summary in the database if online, and caches in localStorage.
  */
 export async function recordCompletedRun(summary: RunSummary): Promise<void> {
-  const localRunsKey = 'nationstate_past_runs';
+  const localRunsKey = storageKey('nationstate_past_runs');
   let localRuns: RunSummary[] = [];
 
   // Parse local array first
@@ -128,7 +153,7 @@ export async function recordCompletedRun(summary: RunSummary): Promise<void> {
   // Attempt database insert
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (!authError && user) {
+    if (!authError && user && user.id === getStorageAccount()) {
       const { error } = await supabase
         .from('run_history')
         .insert({
@@ -158,7 +183,7 @@ export async function recordCompletedRun(summary: RunSummary): Promise<void> {
  * Fetches all completed runs, merging and deduplicating cloud records with local ones.
  */
 export async function fetchRunHistory(): Promise<RunSummary[]> {
-  const localRunsKey = 'nationstate_past_runs';
+  const localRunsKey = storageKey('nationstate_past_runs');
   let localRuns: RunSummary[] = [];
 
   // Get local runs
@@ -172,7 +197,7 @@ export async function fetchRunHistory(): Promise<RunSummary[]> {
   // Attempt Cloud Fetch and Merge
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (!authError && user) {
+    if (!authError && user && user.id === getStorageAccount()) {
       const { data, error } = await supabase
         .from('run_history')
         .select('*')
@@ -237,5 +262,45 @@ export async function fetchRunHistory(): Promise<RunSummary[]> {
     const dateA = a.ended_at ? new Date(a.ended_at).getTime() : 0;
     const dateB = b.ended_at ? new Date(b.ended_at).getTime() : 0;
     return dateB - dateA;
+  });
+}
+
+export async function clearRunHistory(): Promise<boolean> {
+  const key = storageKey('nationstate_past_runs');
+  const accountId = getStorageAccount();
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if ((error && error.name !== 'AuthSessionMissingError') || getStorageAccount() !== accountId || (accountId && user?.id !== accountId)) return false;
+    if (user && user.id === accountId) {
+      const { error: deleteError } = await supabase.from('run_history').delete().eq('user_id', user.id);
+      if (deleteError) return false;
+    }
+    localStorage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.error('Failed to clear run history:', error);
+    return false;
+  }
+}
+
+/** Delete both copies; a failed cloud deletion is reported to the caller. */
+export async function deleteSavedGame(scenarioId: string): Promise<boolean> {
+  const localKey = storageKey(`nationstate_active_save_${scenarioId}`);
+  const accountId = getStorageAccount();
+  return enqueue(async () => {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError && authError.name !== 'AuthSessionMissingError') return false;
+      if (getStorageAccount() !== accountId || (user && user.id !== accountId) || (!user && accountId)) return false;
+      if (user) {
+        const { error } = await supabase.from('game_saves').delete().eq('user_id', user.id).eq('scenario_id', scenarioId);
+        if (error) return false;
+      }
+      localStorage.removeItem(localKey);
+      return true;
+    } catch (err) {
+      console.error('Failed to delete save:', err);
+      return false;
+    }
   });
 }

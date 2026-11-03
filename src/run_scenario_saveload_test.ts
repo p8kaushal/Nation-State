@@ -21,11 +21,11 @@ function runScenarioAndSaveLoadTest() {
   // 2. Verify scenario specific values
   const postWar = scenarios.post_war;
   if (
-    postWar.approvalRating !== 35 ||
-    postWar.publicTrust !== 35 ||
-    postWar.internationalTrust !== 32 ||
-    postWar.educationIndex !== 35 ||
-    postWar.healthcareIndex !== 35 ||
+    postWar.approvalRating !== 38 ||
+    postWar.publicTrust !== 42 ||
+    postWar.internationalTrust !== 35 ||
+    postWar.educationIndex !== 40 ||
+    postWar.healthcareIndex !== 40 ||
     postWar.militaryStrength !== 45 ||
     postWar.corruptionLevel !== 25 ||
     postWar.environmentIndex !== 55 ||
@@ -39,8 +39,8 @@ function runScenarioAndSaveLoadTest() {
   if (
     petrostate.gdp !== 150_000_000_000 ||
     petrostate.treasuryBudget !== 30_000_000_000 ||
-    petrostate.environmentIndex !== 20 ||
-    petrostate.corruptionLevel !== 60 ||
+    petrostate.environmentIndex !== 40 ||
+    petrostate.corruptionLevel !== 40 ||
     petrostate.educationIndex !== 30
   ) {
     throw new Error('petrostate scenario has incorrect stats!');

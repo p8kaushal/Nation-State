@@ -65,7 +65,7 @@ Whether managing debt crises, navigating geopolitical conflicts, reforming educa
 ### Prerequisites
 
 Ensure you have the following installed on your machine:
-- **Node.js**: `v18.0.0` or higher
+- **Node.js**: `v20.19.0` or newer (or `v22.12.0` or newer on the Node 22 line)
 - **npm**: `v9.0.0` or higher (or equivalent package manager)
 
 ### Installation
@@ -91,7 +91,7 @@ Ensure you have the following installed on your machine:
    VITE_SUPABASE_URL=https://your-supabase-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
    ```
-   *(Note: The game operates seamlessly in offline local mode if Supabase credentials are omitted.)*
+   Without Supabase credentials, guest play uses local browser storage and Google sign-in is unavailable.
 
 4. **Launch Local Development Server**:
    ```bash

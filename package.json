@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "test": "tsx src/run_game_test.ts",
-    "validate": "tsx src/validate_content.ts"
+    "validate": "tsx src/validate_content.ts",
+    "test:launch": "node --import tsx src/run_launch_safety_test.ts"
   },
   "keywords": [],
   "author": "",

@@ -1,10 +1,11 @@
-import { supabase } from './supabaseClient';
+import { supabase, supabaseConfigured } from './supabaseClient';
 import { User } from '@supabase/supabase-js';
 
 /**
  * Initiates Google OAuth Sign-In flow.
  */
 export async function signInWithGoogle() {
+  if (!supabaseConfigured) throw new Error('Google sign-in is not configured for this deployment.');
   const redirectUrl = window.location.origin.replace(/\/$/, '');
   console.log('[AUTH] Initiating OAuth flow with callback target:', redirectUrl);
 
