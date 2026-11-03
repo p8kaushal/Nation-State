@@ -12,7 +12,8 @@ const server = http.createServer((req, res) => {
     res.writeHead(404).end();
     return;
   }
-  res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : 'text/html');
+  const contentTypes = { '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.html': 'text/html' };
+  res.setHeader('Content-Type', contentTypes[path.extname(file)] || 'application/octet-stream');
   createReadStream(file).pipe(res);
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -30,6 +31,12 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     await page.setViewport(viewport);
     await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: 'networkidle0' });
+    assert.equal(await page.$eval('link[rel="icon"]', link => link.getAttribute('href')), '/favicon.svg');
+    assert.equal(await page.$eval('a[href="/privacy.html"]', link => link.textContent.trim()), 'Privacy');
+    const privacy = await page.goto(`http://127.0.0.1:${server.address().port}/privacy.html`);
+    assert.equal(privacy.status(), 200);
+    assert.match(await page.title(), /Privacy Policy/);
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await page.click('#home-new-game-btn');
     assert.match(await page.$eval('[data-scenario="post_war"]', card => card.textContent), /Approval 38%/);
     assert.match(await page.$eval('[data-scenario="petrostate"]', card => card.textContent), /Corruption 40/);
