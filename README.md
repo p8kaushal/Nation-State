@@ -121,6 +121,10 @@ If setting up your own Supabase instance:
 3. Paste and execute the contents of [`supabase/schema.sql`](supabase/schema.sql).
 4. Copy your project's URL and Anon API Key to `.env`.
 
+For an existing database, apply [`supabase/migrations/202611030001_save_conflict_protection.sql`](supabase/migrations/202611030001_save_conflict_protection.sql) before deploying this client. The migration adds a revision and an authenticated, conditional save function. Until it is applied, cloud uploads fail safely and games are saved locally. For a new database, `schema.sql` already includes the migration.
+
+If a cloud save changes on another device, the game keeps the current save locally and displays a conflict button. Restoring the cloud copy keeps a backup in the browser's local storage. Browser storage can be cleared by the browser or user, so verify both copies before clearing it.
+
 ---
 
 ## 📄 License

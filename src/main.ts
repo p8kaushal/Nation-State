@@ -5,7 +5,7 @@ import { getRandomOption } from './autoplay';
 import { scenarios, scenarioMetadata, getScenarioInitialState, ScenarioKey } from './scenarios';
 import { getOfficeBgSvg } from './office_scene';
 import { renderNationView } from './nation_view';
-import { saveGameState, loadSave, recordCompletedRun, fetchRunHistory, deleteSavedGame, clearRunHistory } from './lib/cloudSave';
+import { saveGameState, loadSave, restoreCloudSave, recordCompletedRun, fetchRunHistory, deleteSavedGame, clearRunHistory } from './lib/cloudSave';
 import { GameState, RunSummary } from './types/auth';
 import { signInWithGoogle, signOut as supabaseSignOut, getCurrentUser, onAuthStateChange } from './lib/auth';
 import { checkTurnAchievements, checkEndGameAchievements, unlockAchievements, masterAchievements } from './lib/achievements';
@@ -1474,7 +1474,7 @@ function showHistoricalReportCard(run: RunSummary) {
   }
 }
 
-function updateSyncStatusPill(status: 'local' | 'synced' | 'syncing' | 'error') {
+function updateSyncStatusPill(status: 'local' | 'synced' | 'syncing' | 'error' | 'conflict') {
   if (!syncStatusPill) return;
   syncStatusPill.className = `sync-status-pill ${status}`;
   if (status === 'local') {
@@ -1483,10 +1483,27 @@ function updateSyncStatusPill(status: 'local' | 'synced' | 'syncing' | 'error') 
     syncStatusPill.textContent = 'Cloud Synced';
   } else if (status === 'error') {
     syncStatusPill.textContent = 'Save failed';
+  } else if (status === 'conflict') {
+    syncStatusPill.textContent = 'Cloud conflict — resolve';
   } else {
     syncStatusPill.textContent = 'Syncing...';
   }
 }
+
+syncStatusPill?.addEventListener('click', async () => {
+  if (!syncStatusPill.classList.contains('conflict')) return;
+  if (!window.confirm('A newer cloud save exists. Restore it? The current local save will be kept as a browser backup. Cancel to keep playing locally.')) return;
+  try {
+    const restored = await restoreCloudSave(currentScenario);
+    if (!restored) throw new Error('Cloud save unavailable');
+    localStorage.setItem(storageKey(SAVE_KEY), JSON.stringify(restored));
+    await loadGame();
+    updateSyncStatusPill('synced');
+  } catch (error) {
+    console.error('Failed to restore cloud save:', error);
+    window.alert('Could not restore the cloud save. Your local game has been kept.');
+  }
+});
 
 let latestSaveRequest = 0;
 async function saveGame(): Promise<boolean> {
@@ -1498,6 +1515,7 @@ async function saveGame(): Promise<boolean> {
     decisionIndex,
     turnLogsHistory: [...turnLogsHistory],
     savedAt: new Date().toISOString(),
+    localSaveId: crypto.randomUUID(),
   };
   try { localStorage.setItem(storageKey(SAVE_KEY), JSON.stringify(saveData)); } catch (err) { console.error("Local save failed:", err); }
   
@@ -1507,6 +1525,8 @@ async function saveGame(): Promise<boolean> {
     if (request !== latestSaveRequest) return res.success;
     if (res && res.cloudSynced) {
       updateSyncStatusPill('synced');
+    } else if (res.conflict) {
+      updateSyncStatusPill('conflict');
     } else if (res.success) {
       updateSyncStatusPill('local');
     } else {

@@ -146,6 +146,12 @@
       border: 1px solid #93c5fd;
       animation: pulse-sync 1.5s infinite ease-in-out;
     }
+    .sync-status-pill.conflict, .sync-status-pill.error {
+      background: #fff1e6;
+      color: #8a3600;
+      border: 1px solid #b45309;
+    }
+    .sync-status-pill.conflict { cursor: pointer; }
     @keyframes pulse-sync {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
@@ -3287,7 +3293,7 @@
         <div id="turn-display" class="turn-badge">Turn 1</div>
       </div>
       <div class="top-bar-right">
-        <div id="sync-status-pill" class="sync-status-pill local" role="status" aria-live="polite">Saved Locally</div>
+        <button id="sync-status-pill" class="sync-status-pill local" type="button" aria-live="polite">Saved Locally</button>
         <!-- Auth controls -->
         <div id="auth-controls" class="auth-controls">
           <button id="auth-login-btn" class="btn-google">Sign In</button>

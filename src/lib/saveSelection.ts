@@ -1,5 +1,9 @@
 import type { GameState } from '../types/auth';
 
+export function hasUnresolvedConflict(local: GameState | null, cloudRevision: number): boolean {
+  return !!local && local.cloudDirty !== false && local.cloudRevision !== cloudRevision;
+}
+
 /** Preserve undated local data rather than silently replacing an older-format save. */
 export function chooseSave(local: GameState | null, cloud: GameState, cloudUpdatedAt: string): GameState {
   if (!local) return cloud;

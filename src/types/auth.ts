@@ -39,6 +39,9 @@ export interface GameState {
   decisionIndex: number;
   turnLogsHistory: string[];
   savedAt?: string;
+  cloudRevision?: number | null;
+  cloudDirty?: boolean;
+  localSaveId?: string;
 }
 
 export interface RunSummary {
