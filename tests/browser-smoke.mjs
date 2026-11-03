@@ -31,6 +31,8 @@ try {
     await page.setViewport(viewport);
     await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: 'networkidle0' });
     await page.click('#home-new-game-btn');
+    assert.match(await page.$eval('[data-scenario="post_war"]', card => card.textContent), /Approval 38%/);
+    assert.match(await page.$eval('[data-scenario="petrostate"]', card => card.textContent), /Corruption 40/);
     await page.click('#home-start-presidency-btn');
     await page.click('#next-turn-btn');
     await page.waitForFunction(() => JSON.parse(localStorage.getItem('nationstate_active_save_default') || '{}').state?.turn === 2);

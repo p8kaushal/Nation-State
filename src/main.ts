@@ -833,7 +833,7 @@ function renderDecision() {
         for (const eff of option.delayedEffects.effects) {
           const hint = parseEffectFormula(eff);
           if (hint) {
-            const cleanText = hint.text.replace(/^[🟢🔴🟡⚡]\s*/, '');
+            const cleanText = hint.text.replace(/^[🟢🔴🟡⚡]\s*/u, '');
             hints.push({
               text: `⏰ In ${delay}t: ${cleanText}`,
               className: 'hint-delayed',
