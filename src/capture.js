@@ -3,16 +3,7 @@ import { createServer } from 'vite';
 import fs from 'fs';
 import path from 'path';
 
-const ARTIFACT_DIRS = [
-  '/Users/parthkaushal/.gemini/antigravity/brain/3cb3cfe0-a2fe-40db-8458-6c5ab2c2d883',
-  '/Users/parthkaushal/.gemini/antigravity/brain/39142f08-3903-426a-8605-545acaf72591',
-  '/Users/parthkaushal/.gemini/antigravity/brain/2189a140-61b9-46d2-bb1d-772f486c47af',
-  '/Users/parthkaushal/.gemini/antigravity/brain/cbdf3b0e-1508-4957-83a5-b45f3bb749b4',
-  '/Users/parthkaushal/.gemini/antigravity/brain/49ea820c-5f69-4e83-b4ed-188bd76677a7',
-  '/Users/parthkaushal/.gemini/antigravity/brain/34b8014b-ac7f-4df1-83b6-03e844a4617b',
-  '/Users/parthkaushal/.gemini/antigravity/brain/3702b51d-84c6-4eaf-9198-14d8976b36b1',
-  '/Users/parthkaushal/.gemini/antigravity/brain/1484e71a-d794-4e73-b103-b245d218b3e2',
-];
+const ARTIFACT_DIRS = [process.env.SCREENSHOT_DIR || path.resolve('screenshots')];
 
 for (const dir of ARTIFACT_DIRS) {
   try {

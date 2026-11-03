@@ -50,6 +50,7 @@ lerna-debug.log*
 autoplay_*.txt
 autoplay_report.csv
 coverage/
+screenshots/
 .nyc_output/
 
 # IDEs & Editor configurations
