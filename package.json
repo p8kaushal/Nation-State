@@ -15,12 +15,12 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "puppeteer": "^25.16.0",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
     "vite": "^8.2.1"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.3",
-    "puppeteer": "^25.8.0"
+    "@supabase/supabase-js": "^2.112.3"
   }
 }
