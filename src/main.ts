@@ -746,9 +746,9 @@ function renderStats() {
         itemEl.innerHTML = `
           <div class="pending-compact-header">
             <span>⏱️ ${timingText}</span>
-            <span style="font-family: var(--font-mono); font-size: 10px;">${tagText}</span>
+            <span style="font-family: var(--font-mono); font-size: 10px;">${escapeHtml(tagText)}</span>
           </div>
-          <div class="pending-compact-desc">${effect.description}</div>
+          <div class="pending-compact-desc">${escapeHtml(effect.description)}</div>
         `;
         pendingEffectsList.appendChild(itemEl);
       });
@@ -1194,7 +1194,6 @@ async function showReportCard() {
         hudLockOverlay.style.display = 'none';
         hudLockOverlay.className = '';
       }
-      resetGameToScenario(currentScenario);
       showHomeScreen();
     });
   }
@@ -1718,7 +1717,9 @@ function handleTurn(chosenOption?: DecisionOption, decisionId?: string) {
   saveGame();
 }
 
-function resetGameToScenario(scenarioKey: ScenarioKey) {
+function resetGameToScenario(scenarioKey: ScenarioKey): boolean {
+  const existing = localStorage.getItem(storageKey(`nationstate_active_save_${scenarioKey}`));
+  if (existing && !window.confirm('Starting a new game will replace the saved game for this scenario. Continue?')) return false;
   if (isAutoplayRunning) stopAutoplay();
   currentScenario = scenarioKey;
   if (scenarioSelect) scenarioSelect.value = scenarioKey;
@@ -1748,6 +1749,7 @@ function resetGameToScenario(scenarioKey: ScenarioKey) {
   setMobileTab('desk');
   render();
   saveGame();
+  return true;
 }
 
 function stopAutoplay() {
@@ -1803,8 +1805,11 @@ autoplayBtn.addEventListener('click', () => {
 if (scenarioSelect) {
   scenarioSelect.addEventListener('change', () => {
     const selected = scenarioSelect.value as ScenarioKey;
+    if (!resetGameToScenario(selected)) {
+      scenarioSelect.value = currentScenario;
+      return;
+    }
     if (mobileScenarioSelect) mobileScenarioSelect.value = selected;
-    resetGameToScenario(selected);
   });
 }
 
@@ -1831,8 +1836,11 @@ if (mobileActionsToggleBtn && mobileActionsDrawer) {
 if (mobileScenarioSelect) {
   mobileScenarioSelect.addEventListener('change', () => {
     const selected = mobileScenarioSelect.value as ScenarioKey;
+    if (!resetGameToScenario(selected)) {
+      mobileScenarioSelect.value = currentScenario;
+      return;
+    }
     if (scenarioSelect) scenarioSelect.value = selected;
-    resetGameToScenario(selected);
     if (mobileActionsDrawer) mobileActionsDrawer.classList.remove('open');
   });
 }
@@ -2102,8 +2110,7 @@ homeScenarioCards.forEach((card) => {
 
 if (homeStartPresidencyBtn) {
   homeStartPresidencyBtn.addEventListener('click', () => {
-    resetGameToScenario(selectedHomeScenario);
-    hideHomeScreen();
+    if (resetGameToScenario(selectedHomeScenario)) hideHomeScreen();
   });
 }
 
@@ -2464,8 +2471,25 @@ if (homeLogoutBtn) {
 }
 
 // Auth State Shift Listener
+let previousAuthAccount: string | null | undefined;
 onAuthStateChange(async (user) => {
+  const nextAccount = user?.id ?? null;
+  const accountChanged = previousAuthAccount !== undefined && previousAuthAccount !== nextAccount;
+  previousAuthAccount = nextAccount;
   setStorageAccount(user?.id ?? null);
+  if (accountChanged) {
+    if (isAutoplayRunning) stopAutoplay();
+    currentScenario = 'default';
+    state = getScenarioInitialState(currentScenario);
+    currentDecision = undefined;
+    turnLogsHistory.length = 0;
+    historyRecorded = false;
+    if (reportCardModal) reportCardModal.style.display = 'none';
+    if (historyModal) historyModal.style.display = 'none';
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
+    showHomeScreen();
+    render();
+  }
   if (user) {
     const avatarUrl = user.user_metadata.avatar_url || user.user_metadata.picture || 'https://lh3.googleusercontent.com/a/default-user=s96-c';
     const firstInitial = (user.user_metadata.full_name || user.email || 'U').charAt(0).toUpperCase();

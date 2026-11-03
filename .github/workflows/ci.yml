@@ -22,4 +22,8 @@ jobs:
       - run: npm run build
       - run: npm run validate
       - run: npm run test:launch
+      - run: npm run test:cloud
       - run: npx tsx src/run_scenario_saveload_test.ts
+      - run: npm run test:browser
+        env:
+          CHROME_PATH: /usr/bin/google-chrome

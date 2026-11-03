@@ -169,6 +169,7 @@ export async function restoreCloudSave(scenarioId: string): Promise<GameState | 
  */
 export async function recordCompletedRun(summary: RunSummary): Promise<void> {
   const localRunsKey = storageKey('nationstate_past_runs');
+  const accountId = getStorageAccount();
   let localRuns: RunSummary[] = [];
 
   // Parse local array first
@@ -196,7 +197,7 @@ export async function recordCompletedRun(summary: RunSummary): Promise<void> {
   // Attempt database insert
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (!authError && user && user.id === getStorageAccount()) {
+    if (!authError && user && user.id === accountId && getStorageAccount() === accountId) {
       const { error } = await supabase
         .from('run_history')
         .insert({
@@ -227,6 +228,7 @@ export async function recordCompletedRun(summary: RunSummary): Promise<void> {
  */
 export async function fetchRunHistory(): Promise<RunSummary[]> {
   const localRunsKey = storageKey('nationstate_past_runs');
+  const accountId = getStorageAccount();
   let localRuns: RunSummary[] = [];
 
   // Get local runs
@@ -240,7 +242,7 @@ export async function fetchRunHistory(): Promise<RunSummary[]> {
   // Attempt Cloud Fetch and Merge
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (!authError && user && user.id === getStorageAccount()) {
+    if (!authError && user && user.id === accountId && getStorageAccount() === accountId) {
       const { data, error } = await supabase
         .from('run_history')
         .select('*')
@@ -248,6 +250,7 @@ export async function fetchRunHistory(): Promise<RunSummary[]> {
         .order('ended_at', { ascending: false });
 
       if (!error && data) {
+        if (getStorageAccount() !== accountId) return [];
         const remoteRuns: RunSummary[] = data.map((r) => ({
           id: r.id,
           user_id: r.user_id,
@@ -301,6 +304,7 @@ export async function fetchRunHistory(): Promise<RunSummary[]> {
   }
 
   // Fallback sorting local list
+  if (getStorageAccount() !== accountId) return [];
   return localRuns.sort((a, b) => {
     const dateA = a.ended_at ? new Date(a.ended_at).getTime() : 0;
     const dateB = b.ended_at ? new Date(b.ended_at).getTime() : 0;

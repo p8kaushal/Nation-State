@@ -1,7 +1,7 @@
 import { Achievement } from '../types/achievements';
 import { GameState } from '../types/auth';
 import { supabase } from './supabaseClient';
-import { storageKey } from './storage';
+import { getStorageAccount, storageKey } from './storage';
 
 /**
  * Master catalog of all achievements.
@@ -151,6 +151,7 @@ export async function unlockAchievements(achievementIds: string[]): Promise<stri
   if (achievementIds.length === 0) return [];
 
   const localKey = storageKey('nationstate_unlocked_achievements');
+  const accountId = getStorageAccount();
   let localUnlocked: string[] = [];
 
   // Parse local list
@@ -175,7 +176,7 @@ export async function unlockAchievements(achievementIds: string[]): Promise<stri
   // Remote Sync
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (!authError && user) {
+    if (!authError && user && user.id === accountId && getStorageAccount() === accountId) {
       // Upsert remote rows one by one or in bulk
       const rows = achievementIds.map((id) => ({
         user_id: user.id,
@@ -203,6 +204,7 @@ export async function unlockAchievements(achievementIds: string[]): Promise<stri
  */
 export async function fetchUserAchievements(): Promise<string[]> {
   const localKey = storageKey('nationstate_unlocked_achievements');
+  const accountId = getStorageAccount();
   let localUnlocked: string[] = [];
 
   // Parse local list
@@ -216,13 +218,13 @@ export async function fetchUserAchievements(): Promise<string[]> {
   // Fetch Remote Sync
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (!authError && user) {
+    if (!authError && user && user.id === accountId && getStorageAccount() === accountId) {
       const { data, error: dbError } = await supabase
         .from('user_achievements')
         .select('achievement_id')
         .eq('user_id', user.id);
 
-      if (!dbError && data) {
+      if (!dbError && data && getStorageAccount() === accountId) {
         const remoteIds = data.map((row) => row.achievement_id);
         const mergedSet = new Set([...localUnlocked, ...remoteIds]);
         const finalUnlocked = Array.from(mergedSet);
@@ -241,5 +243,5 @@ export async function fetchUserAchievements(): Promise<string[]> {
     console.error('Network exception fetching achievements from Supabase:', err);
   }
 
-  return localUnlocked;
+  return getStorageAccount() === accountId ? localUnlocked : [];
 }

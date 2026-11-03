@@ -8,7 +8,9 @@
     "build": "tsc && vite build",
     "test": "tsx src/run_game_test.ts",
     "validate": "tsx src/validate_content.ts",
-    "test:launch": "node --import tsx src/run_launch_safety_test.ts"
+    "test:launch": "node --import tsx src/run_launch_safety_test.ts",
+    "test:cloud": "node --import tsx src/run_cloud_save_test.ts",
+    "test:browser": "node tests/browser-smoke.mjs"
   },
   "keywords": [],
   "author": "",
