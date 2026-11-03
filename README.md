@@ -131,4 +131,4 @@ If a cloud save changes on another device, the game keeps the current save local
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-Copyright &copy; 2026 **Parth Kaushal**.
+Copyright &copy; 2026 **Nation State contributors**.

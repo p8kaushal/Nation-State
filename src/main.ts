@@ -72,19 +72,9 @@ const settingsModal = document.getElementById('settings-modal') as HTMLElement |
 const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement | null;
 const mainMenuDeleteSaveBtn = document.getElementById('main-menu-delete-save-btn') as HTMLButtonElement | null;
 
-// Admin & Debug Restriction State
-let isAdmin = false; // Hardcoded default false (set to true for developer/admin mode)
-const ADMIN_EMAILS = ['admin@nationstate.app', 'parthkaushal@gmail.com', 'developer@nationstate.app'];
-
-function checkIsAdmin(userEmail?: string | null): boolean {
-  if (userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
-    return true;
-  }
-  return isAdmin;
-}
-
-function updateAdminVisibility(userEmail?: string | null) {
-  const adminState = checkIsAdmin(userEmail);
+// Debug controls are disabled in the public build.
+function updateAdminVisibility(_userEmail?: string | null) {
+  const adminState = false;
   if (mainMenuDebugBtn) {
     mainMenuDebugBtn.style.display = adminState ? 'block' : 'none';
   }
