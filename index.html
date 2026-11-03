@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nation State Simulation - Cabinet Chamber</title>
+  <meta name="description" content="Lead a republic through political crises and economic choices in a turn-based strategy game." />
+  <meta name="theme-color" content="#0b1b3d" />
+  <meta property="og:title" content="Nation State: The Cabinet Chamber" />
+  <meta property="og:description" content="Lead a republic through political crises and economic choices in a turn-based strategy game." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>Nation State: The Cabinet Chamber</title>
   <style>
     :root {
       --bg-parchment: #FAF8F5;
@@ -146,6 +153,12 @@
       border: 1px solid #93c5fd;
       animation: pulse-sync 1.5s infinite ease-in-out;
     }
+    .sync-status-pill.conflict, .sync-status-pill.error {
+      background: #fff1e6;
+      color: #8a3600;
+      border: 1px solid #b45309;
+    }
+    .sync-status-pill.conflict { cursor: pointer; }
     @keyframes pulse-sync {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
@@ -1624,6 +1637,10 @@
       line-height: 1.5;
       margin: 0 0 20px 0;
     }
+
+    .home-legal-links { margin-top: 18px; font-size: 12px; color: var(--bureaucracy-dark); }
+    .home-legal-links a { color: var(--federal-navy); text-decoration: underline; text-underline-offset: 3px; }
+    .home-legal-links a:focus-visible { outline: 2px solid var(--cabinet-crimson); outline-offset: 3px; }
 
     .home-divider {
       width: 100%;
@@ -3140,6 +3157,10 @@
             <button id="home-logout-btn" class="btn-danger-home">Sign Out</button>
           </div>
         </div>
+        <nav class="home-legal-links" aria-label="Site information">
+          <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a> ·
+          <a href="mailto:parth.kaushal.007@gmail.com">Support</a>
+        </nav>
       </div>
 
       <!-- Scenario Selection Board -->
@@ -3175,8 +3196,8 @@
             <p class="scenario-card-desc">Ravaged services, low trust, and crushing debt.</p>
             <div class="scenario-preview-stats">
               <span class="preview-stat-item">💳 Debt 60%</span>
-              <span class="preview-stat-item">🏛️ Approval 35%</span>
-              <span class="preview-stat-item">👥 Pub. Trust 35</span>
+              <span class="preview-stat-item">🏛️ Approval 38%</span>
+              <span class="preview-stat-item">👥 Pub. Trust 42</span>
             </div>
           </div>
 
@@ -3190,8 +3211,8 @@
             <p class="scenario-card-desc">Resource-rich, massive GDP but high pollution and corruption.</p>
             <div class="scenario-preview-stats">
               <span class="preview-stat-item">📈 GDP $150.0B</span>
-              <span class="preview-stat-item">⚖️ Corruption 60</span>
-              <span class="preview-stat-item">🌲 Environment 20</span>
+              <span class="preview-stat-item">⚖️ Corruption 40</span>
+              <span class="preview-stat-item">🌲 Environment 40</span>
             </div>
           </div>
 
@@ -3284,20 +3305,10 @@
           <h1 class="brand-title"><span class="brand-full">🏛️ Cabinet of the Republic</span><span class="brand-short">🏛️ Cabinet</span></h1>
           <span class="subtitle">Executive Simulation</span>
         </div>
-        <div class="scenario-control">
-          <label for="scenario-select" class="scenario-label">Scenario:</label>
-          <select id="scenario-select" class="scenario-select">
-            <option value="default">Golden Era</option>
-            <option value="post_war">Post-War Reconstruction</option>
-            <option value="petrostate">Petrostate</option>
-            <option value="fragile_democracy">Fragile Democracy</option>
-          </select>
-        </div>
+        <div id="turn-display" class="turn-badge">Turn 1</div>
       </div>
       <div class="top-bar-right">
-        <!-- Cloud Sync status pill -->
-        <div id="sync-status-pill" class="sync-status-pill local">Saved Locally</div>
-        
+        <button id="sync-status-pill" class="sync-status-pill local" type="button" aria-live="polite">Saved Locally</button>
         <!-- Auth controls -->
         <div id="auth-controls" class="auth-controls">
           <button id="auth-login-btn" class="btn-google">Sign In</button>
@@ -3310,17 +3321,9 @@
           </div>
         </div>
 
-        <div class="save-load-group">
-          <button id="menu-home-btn" class="ctrl-btn btn-secondary" title="Return to Title / Main Menu">🏛️ Menu</button>
-          <button id="resume-btn" class="ctrl-btn btn-success" style="display: none;" title="Resume previous saved session">Resume Game</button>
-          <button id="save-btn" class="ctrl-btn btn-primary" title="Save game manually">Save</button>
-          <button id="load-btn" class="ctrl-btn btn-secondary" title="Load saved game">Load</button>
-          <button id="delete-save-btn" class="ctrl-btn btn-danger" title="Delete current save file">Delete Save</button>
-          <button id="past-runs-btn" class="ctrl-btn btn-secondary" title="View past administration records">Past Runs</button>
-          <button id="debug-report-card-btn" class="ctrl-btn btn-secondary" title="Debug: Show Report Card modal">Debug Card</button>
-        </div>
-        <button id="mobile-actions-toggle-btn" class="ctrl-btn btn-secondary" style="display: none;" title="Open mobile actions drawer">⚙️ Actions</button>
-        <div id="turn-display" class="turn-badge">Turn 1</div>
+        <button id="universal-menu-btn" class="ctrl-btn btn-secondary" title="Open Main Menu" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-weight: 700;">
+          ☰ Menu
+        </button>
       </div>
     </header>
 
@@ -3504,6 +3507,55 @@
         </table>
         <div id="no-history-msg" class="empty-history-msg">
           No completed administration records recorded yet. Finish a simulation to view history.
+        </div>
+      </div>
+  </div>
+
+  <!-- Universal Main Menu Modal -->
+  <div id="main-menu-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-content-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 22px;">🏛️</span>
+          <div>
+            <h2 style="margin: 0; font-size: 16px;">Cabinet of the Republic</h2>
+            <div style="font-size: 11px; color: var(--bureaucracy-dark);">Nation State Simulation • Created by Nation State Team</div>
+          </div>
+        </div>
+        <button id="close-main-menu-btn" class="modal-close-btn" title="Close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+        <button id="main-menu-resume-btn" class="ctrl-btn btn-success" style="padding: 10px 14px; font-size: 13px; justify-content: center; display: none;">▶ Resume Game</button>
+        <button id="main-menu-save-btn" class="ctrl-btn btn-primary" style="padding: 10px 14px; font-size: 13px; justify-content: center;">💾 Save Game</button>
+        <button id="main-menu-load-btn" class="ctrl-btn btn-secondary" style="padding: 10px 14px; font-size: 13px; justify-content: center;">📂 Load Game</button>
+        <button id="main-menu-runs-btn" class="ctrl-btn btn-secondary" style="padding: 10px 14px; font-size: 13px; justify-content: center;">📜 Past Runs</button>
+        <button id="main-menu-settings-btn" class="ctrl-btn btn-secondary" style="padding: 10px 14px; font-size: 13px; justify-content: center;">⚙️ Settings</button>
+        <button id="main-menu-title-btn" class="ctrl-btn btn-secondary" style="padding: 10px 14px; font-size: 13px; justify-content: center;">🏛️ Title Screen</button>
+        <button id="main-menu-debug-btn" class="ctrl-btn btn-danger" style="padding: 10px 14px; font-size: 13px; justify-content: center; display: none;">🛠️ Debug Mode</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Executive Settings Modal -->
+  <div id="settings-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-content-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h2>⚙️ Executive Settings</h2>
+        <button id="close-settings-btn" class="modal-close-btn" title="Close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="font-weight: 600; font-size: 12px; color: var(--federal-navy);">Active Scenario:</label>
+          <select id="scenario-select" class="scenario-select" style="padding: 6px 10px; width: 100%;">
+            <option value="default">Golden Era</option>
+            <option value="post_war">Post-War Reconstruction</option>
+            <option value="petrostate">Petrostate</option>
+            <option value="fragile_democracy">Fragile Democracy</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="font-weight: 600; font-size: 12px; color: var(--federal-navy);">Data Management:</label>
+          <button id="main-menu-delete-save-btn" class="ctrl-btn btn-danger" style="padding: 8px 12px; font-size: 12px;">🗑️ Delete Local & Cloud Save Data</button>
         </div>
       </div>
     </div>

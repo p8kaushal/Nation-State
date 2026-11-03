@@ -5,11 +5,16 @@ import { getRandomOption } from './autoplay';
 import { scenarios, scenarioMetadata, getScenarioInitialState, ScenarioKey } from './scenarios';
 import { getOfficeBgSvg } from './office_scene';
 import { renderNationView } from './nation_view';
-import { saveGameState, loadSave, recordCompletedRun, fetchRunHistory } from './lib/cloudSave';
+import { saveGameState, loadSave, restoreCloudSave, recordCompletedRun, fetchRunHistory, deleteSavedGame, clearRunHistory } from './lib/cloudSave';
 import { GameState, RunSummary } from './types/auth';
 import { signInWithGoogle, signOut as supabaseSignOut, getCurrentUser, onAuthStateChange } from './lib/auth';
 import { checkTurnAchievements, checkEndGameAchievements, unlockAchievements, masterAchievements } from './lib/achievements';
 import { renderReportCardModal } from './components/ReportCardModal';
+import { storageKey, setStorageAccount } from './lib/storage';
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]!));
+}
 
 function clamp(val: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, val));
@@ -42,13 +47,51 @@ let autoplayTimeoutId: number | null = null;
 let isLogExpanded = false;
 
 // Header elements & Scenario selector
-const scenarioSelect = document.getElementById('scenario-select') as HTMLSelectElement;
+const scenarioSelect = document.getElementById('scenario-select') as HTMLSelectElement | null;
 const turnDisplay = document.getElementById('turn-display') as HTMLElement;
-const resumeBtn = document.getElementById('resume-btn') as HTMLButtonElement;
-const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
-const loadBtn = document.getElementById('load-btn') as HTMLButtonElement;
-const deleteSaveBtn = document.getElementById('delete-save-btn') as HTMLButtonElement;
-const pastRunsBtn = document.getElementById('past-runs-btn') as HTMLButtonElement;
+const resumeBtn = document.getElementById('resume-btn') as HTMLButtonElement | null;
+const saveBtn = document.getElementById('save-btn') as HTMLButtonElement | null;
+const loadBtn = document.getElementById('load-btn') as HTMLButtonElement | null;
+const deleteSaveBtn = document.getElementById('delete-save-btn') as HTMLButtonElement | null;
+const pastRunsBtn = document.getElementById('past-runs-btn') as HTMLButtonElement | null;
+
+// Universal Top Bar & Main Menu Elements
+const universalMenuBtn = document.getElementById('universal-menu-btn') as HTMLButtonElement | null;
+const mainMenuModal = document.getElementById('main-menu-modal') as HTMLElement | null;
+const closeMainMenuBtn = document.getElementById('close-main-menu-btn') as HTMLButtonElement | null;
+const mainMenuResumeBtn = document.getElementById('main-menu-resume-btn') as HTMLButtonElement | null;
+const mainMenuSaveBtn = document.getElementById('main-menu-save-btn') as HTMLButtonElement | null;
+const mainMenuLoadBtn = document.getElementById('main-menu-load-btn') as HTMLButtonElement | null;
+const mainMenuRunsBtn = document.getElementById('main-menu-runs-btn') as HTMLButtonElement | null;
+const mainMenuSettingsBtn = document.getElementById('main-menu-settings-btn') as HTMLButtonElement | null;
+const mainMenuTitleBtn = document.getElementById('main-menu-title-btn') as HTMLButtonElement | null;
+const mainMenuDebugBtn = document.getElementById('main-menu-debug-btn') as HTMLButtonElement | null;
+
+// Executive Settings Modal Elements
+const settingsModal = document.getElementById('settings-modal') as HTMLElement | null;
+const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement | null;
+const mainMenuDeleteSaveBtn = document.getElementById('main-menu-delete-save-btn') as HTMLButtonElement | null;
+
+// Admin & Debug Restriction State
+let isAdmin = false; // Hardcoded default false (set to true for developer/admin mode)
+const ADMIN_EMAILS = ['admin@nationstate.app', 'parthkaushal@gmail.com', 'developer@nationstate.app'];
+
+function checkIsAdmin(userEmail?: string | null): boolean {
+  if (userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
+    return true;
+  }
+  return isAdmin;
+}
+
+function updateAdminVisibility(userEmail?: string | null) {
+  const adminState = checkIsAdmin(userEmail);
+  if (mainMenuDebugBtn) {
+    mainMenuDebugBtn.style.display = adminState ? 'block' : 'none';
+  }
+  if (debugReportCardBtn) {
+    debugReportCardBtn.style.display = adminState ? 'inline-flex' : 'none';
+  }
+}
 
 // Mobile Header Actions Drawer elements
 const mobileActionsToggleBtn = document.getElementById('mobile-actions-toggle-btn') as HTMLButtonElement | null;
@@ -703,9 +746,9 @@ function renderStats() {
         itemEl.innerHTML = `
           <div class="pending-compact-header">
             <span>⏱️ ${timingText}</span>
-            <span style="font-family: var(--font-mono); font-size: 10px;">${tagText}</span>
+            <span style="font-family: var(--font-mono); font-size: 10px;">${escapeHtml(tagText)}</span>
           </div>
-          <div class="pending-compact-desc">${effect.description}</div>
+          <div class="pending-compact-desc">${escapeHtml(effect.description)}</div>
         `;
         pendingEffectsList.appendChild(itemEl);
       });
@@ -790,7 +833,7 @@ function renderDecision() {
         for (const eff of option.delayedEffects.effects) {
           const hint = parseEffectFormula(eff);
           if (hint) {
-            const cleanText = hint.text.replace(/^[🟢🔴🟡⚡]\s*/, '');
+            const cleanText = hint.text.replace(/^[🟢🔴🟡⚡]\s*/u, '');
             hints.push({
               text: `⏰ In ${delay}t: ${cleanText}`,
               className: 'hint-delayed',
@@ -1018,7 +1061,7 @@ function renderLogs() {
           else if (entry.category === 'PENDING') flagCls = 'flag-pending';
           else if (entry.category === 'DRIFT') flagCls = 'flag-drift';
 
-          return `<span style="display: inline-flex; align-items: center; gap: 5px; margin-right: 12px;"><span class="log-flag ${flagCls}">${entry.category}</span> ${entry.text}</span>`;
+          return `<span style="display: inline-flex; align-items: center; gap: 5px; margin-right: 12px;"><span class="log-flag ${flagCls}">${entry.category}</span> ${escapeHtml(entry.text)}</span>`;
         })
         .join(' ');
     }
@@ -1041,7 +1084,7 @@ function renderLogs() {
             return `
               <div class="log-entry-row">
                 <span class="log-flag ${flagCls}">${entry.category}</span>
-                <span class="log-text">${entry.text}</span>
+                <span class="log-text">${escapeHtml(entry.text)}</span>
               </div>
             `;
           })
@@ -1049,7 +1092,7 @@ function renderLogs() {
 
         return `
           <div class="log-timeline-turn">
-            <div class="log-turn-header">⚡ ${group.title}</div>
+            <div class="log-turn-header">⚡ ${escapeHtml(group.title)}</div>
             ${entriesHtml}
           </div>
         `;
@@ -1077,11 +1120,12 @@ function render() {
   renderDecision();
   renderLogs();
 
+  const reportModal = document.getElementById('report-card-modal');
   if (state.gameOver) {
     gameOverOverlay.style.display = 'none';
     const btns = document.querySelectorAll('.executive-option-btn');
     btns.forEach((btn) => ((btn as HTMLButtonElement).disabled = true));
-    nextTurnBtn.disabled = true;
+    if (nextTurnBtn) nextTurnBtn.disabled = true;
 
     if (hudLockOverlay) {
       const isWin = state.gameResult === 'win';
@@ -1089,10 +1133,18 @@ function render() {
       hudLockOverlay.className = isWin ? 'win' : 'lose';
     }
 
+    if (reportModal) {
+      reportModal.classList.remove('hidden');
+      reportModal.style.display = 'flex';
+    }
+
     recordGameOverAndShowReportCard();
   } else {
+    if (reportModal && reportModal.style.display !== 'flex') {
+      reportModal.classList.add('hidden');
+    }
     gameOverOverlay.style.display = 'none';
-    nextTurnBtn.disabled = false;
+    if (nextTurnBtn) nextTurnBtn.disabled = false;
     if (hudLockOverlay) {
       hudLockOverlay.style.display = 'none';
       hudLockOverlay.className = '';
@@ -1121,15 +1173,30 @@ async function showReportCard() {
   // 2. Render and Display Modal (Synchronous / Immediate)
   try {
     reportCardModal.innerHTML = renderReportCardModal(currentSavedState, isWin, allNewlyUnlockedIds);
+    reportCardModal.classList.remove('hidden');
     reportCardModal.style.display = 'flex';
   } catch (err) {
     console.error('Failed to render report card modal:', err);
   }
 
   // 3. Bind Modal Actions
+  const playNewBtn = document.getElementById('report-card-play-new-btn');
   const menuBtn = document.getElementById('report-card-menu-btn');
   const runsBtn = document.getElementById('report-card-runs-btn');
   const closeBtn = document.getElementById('report-card-close-btn');
+
+  if (playNewBtn) {
+    playNewBtn.addEventListener('click', () => {
+      reportCardModal.classList.add('hidden');
+      reportCardModal.style.display = 'none';
+      if (historyModal) historyModal.style.display = 'none';
+      if (hudLockOverlay) {
+        hudLockOverlay.style.display = 'none';
+        hudLockOverlay.className = '';
+      }
+      showHomeScreen();
+    });
+  }
 
   if (menuBtn) {
     menuBtn.addEventListener('click', () => {
@@ -1177,12 +1244,14 @@ async function showReportCard() {
 }
 
 async function recordGameOverAndShowReportCard() {
-  if (historyRecorded || !state.gameOver) return;
+  if (!state.gameOver) return;
+
+  showReportCard();
+
+  if (historyRecorded) return;
   historyRecorded = true;
 
-  console.log('[DEBUG] Game Over detected. Opening Report Card modal...');
-  console.log('Game ended. Reason:', state.gameOverReason, 'Win:', state.gameResult === 'win');
-
+  console.log('[DEBUG] Game Over detected. Recording administration history...');
   const isWin = state.gameResult === 'win';
   if (!isWin) {
     turnLogsHistory.push(`[SYSTEM] REGIME TERMINATED / DEPORTED`);
@@ -1339,9 +1408,9 @@ async function renderHistoryTable() {
       const badgeClass = isWin ? 'result-badge win' : 'result-badge lose';
       const badgeText = isWin ? 'WIN' : 'LOSE';
       const meta = scenarioMetadata[item.scenario_id as ScenarioKey];
-      const scenarioName = meta ? meta.name : item.scenario_id;
+      const scenarioName = escapeHtml(meta ? meta.name : item.scenario_id);
       const dateStr = item.ended_at ? new Date(item.ended_at).toLocaleString() : 'N/A';
-      const gradeText = item.grade || 'F';
+      const gradeText = escapeHtml(item.grade || 'F');
 
       const badgesEarnedHtml = (item.badgesEarned || [])
         .map((badgeId) => {
@@ -1354,12 +1423,12 @@ async function renderHistoryTable() {
         <tr>
           <td>${dateStr}</td>
           <td><strong>${scenarioName}</strong></td>
-          <td>Turn ${item.turns_survived}</td>
+          <td>Turn ${escapeHtml(item.turns_survived)}</td>
           <td><span class="${badgeClass}">${badgeText}</span></td>
           <td><span class="run-grade-badge badge-${gradeText}">${gradeText}</span></td>
           <td><div style="display: flex; gap: 4px;">${badgesEarnedHtml || 'N/A'}</div></td>
-          <td style="font-size: 11.5px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.loss_reason || ''}">
-            ${item.loss_reason || 'N/A'}
+          <td style="font-size: 11.5px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.loss_reason || '')}">
+            ${escapeHtml(item.loss_reason || 'N/A')}
           </td>
           <td>
             <button class="inspect-run-btn ctrl-btn btn-secondary" data-run-index="${index}" style="padding: 4px 8px; font-size: 11px; min-height: auto;">Inspect</button>
@@ -1404,41 +1473,72 @@ function showHistoricalReportCard(run: RunSummary) {
   }
 }
 
-function updateSyncStatusPill(status: 'local' | 'synced' | 'syncing') {
+function updateSyncStatusPill(status: 'local' | 'synced' | 'syncing' | 'error' | 'conflict') {
   if (!syncStatusPill) return;
   syncStatusPill.className = `sync-status-pill ${status}`;
   if (status === 'local') {
     syncStatusPill.textContent = 'Saved Locally';
   } else if (status === 'synced') {
     syncStatusPill.textContent = 'Cloud Synced';
+  } else if (status === 'error') {
+    syncStatusPill.textContent = 'Save failed';
+  } else if (status === 'conflict') {
+    syncStatusPill.textContent = 'Cloud conflict — resolve';
   } else {
     syncStatusPill.textContent = 'Syncing...';
   }
 }
 
-async function saveGame() {
+syncStatusPill?.addEventListener('click', async () => {
+  if (!syncStatusPill.classList.contains('conflict')) return;
+  if (!window.confirm('A newer cloud save exists. Restore it? The current local save will be kept as a browser backup. Cancel to keep playing locally.')) return;
+  try {
+    const restored = await restoreCloudSave(currentScenario);
+    if (!restored) throw new Error('Cloud save unavailable');
+    localStorage.setItem(storageKey(SAVE_KEY), JSON.stringify(restored));
+    await loadGame();
+    updateSyncStatusPill('synced');
+  } catch (error) {
+    console.error('Failed to restore cloud save:', error);
+    window.alert('Could not restore the cloud save. Your local game has been kept.');
+  }
+});
+
+let latestSaveRequest = 0;
+async function saveGame(): Promise<boolean> {
+  const request = ++latestSaveRequest;
   const decisionIndex = currentDecision ? decisions.findIndex((d) => d.id === currentDecision?.id) : -1;
   const saveData: GameState = {
     scenarioId: currentScenario,
     state,
     decisionIndex,
-    turnLogsHistory,
+    turnLogsHistory: [...turnLogsHistory],
+    savedAt: new Date().toISOString(),
+    localSaveId: crypto.randomUUID(),
   };
-  localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+  try { localStorage.setItem(storageKey(SAVE_KEY), JSON.stringify(saveData)); } catch (err) { console.error("Local save failed:", err); }
   
   updateSyncStatusPill('syncing');
   try {
     const res = await saveGameState(saveData);
+    if (request !== latestSaveRequest) return res.success;
     if (res && res.cloudSynced) {
       updateSyncStatusPill('synced');
-    } else {
+    } else if (res.conflict) {
+      updateSyncStatusPill('conflict');
+    } else if (res.success) {
       updateSyncStatusPill('local');
+    } else {
+      updateSyncStatusPill('error');
+      return false;
     }
   } catch (err) {
     console.error('Failed to sync save state to cloud:', err);
-    updateSyncStatusPill('local');
+    updateSyncStatusPill('error');
+    return false;
   }
   updateSaveControls();
+  return true;
 }
 
 async function loadGame(): Promise<boolean> {
@@ -1451,12 +1551,22 @@ async function loadGame(): Promise<boolean> {
   }
 
   if (!saveData) {
-    const raw = localStorage.getItem(SAVE_KEY);
+    let raw = localStorage.getItem(storageKey(`nationstate_active_save_${currentScenario}`));
+    if (!raw) raw = localStorage.getItem(storageKey(SAVE_KEY));
+    if (!raw) {
+      for (const key of Object.keys(scenarios)) {
+        const k = storageKey(`nationstate_active_save_${key}`);
+        if (localStorage.getItem(k) !== null) {
+          raw = localStorage.getItem(k);
+          break;
+        }
+      }
+    }
     if (raw) {
       try {
         saveData = JSON.parse(raw);
       } catch (e) {
-        console.error('Failed parsing legacy save:', e);
+        console.error('Failed parsing local save:', e);
       }
     }
   }
@@ -1476,7 +1586,7 @@ async function loadGame(): Promise<boolean> {
     const scId = saveData.scenarioId || (saveData as any).scenario;
     if (scId && scenarios[scId as ScenarioKey]) {
       currentScenario = scId as ScenarioKey;
-      scenarioSelect.value = currentScenario;
+      if (scenarioSelect) scenarioSelect.value = currentScenario;
       if (mobileScenarioSelect) mobileScenarioSelect.value = currentScenario;
     }
 
@@ -1486,10 +1596,11 @@ async function loadGame(): Promise<boolean> {
       currentDecision = undefined;
     }
 
-    const user = await getCurrentUser();
-    updateSyncStatusPill(user ? 'synced' : 'local');
+    updateSyncStatusPill('local');
 
     historyRecorded = !!state.gameOver;
+    hideHomeScreen();
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
     render();
     updateSaveControls();
     return true;
@@ -1500,19 +1611,24 @@ async function loadGame(): Promise<boolean> {
   }
 }
 
-function deleteSave() {
-  localStorage.removeItem(SAVE_KEY);
-  localStorage.removeItem(`nationstate_active_save_${currentScenario}`);
-  updateSaveControls();
+async function deleteSave(): Promise<boolean> {
+  const deleted = await deleteSavedGame(currentScenario);
+  if (deleted) {
+    localStorage.removeItem(storageKey(SAVE_KEY));
+    updateSaveControls();
+  } else {
+    window.alert('Could not delete the saved game. Check your connection and try again.');
+  }
+  return deleted;
 }
 
 function updateHomeContinueButton() {
-  let hasSave = localStorage.getItem(SAVE_KEY) !== null;
-  let activeSaveKey = SAVE_KEY;
+  let hasSave = localStorage.getItem(storageKey(SAVE_KEY)) !== null;
+  let activeSaveKey = storageKey(SAVE_KEY);
 
   if (!hasSave) {
     for (const key of Object.keys(scenarios)) {
-      const k = `nationstate_active_save_${key}`;
+      const k = storageKey(`nationstate_active_save_${key}`);
       if (localStorage.getItem(k) !== null) {
         hasSave = true;
         activeSaveKey = k;
@@ -1565,11 +1681,14 @@ function selectHomeScenario(scenarioKey: ScenarioKey) {
 }
 
 function updateSaveControls() {
-  const localKey = `nationstate_active_save_${currentScenario}`;
-  const hasSave = localStorage.getItem(localKey) !== null || localStorage.getItem(SAVE_KEY) !== null;
-  resumeBtn.style.display = hasSave ? 'inline-flex' : 'none';
-  loadBtn.disabled = !hasSave;
-  deleteSaveBtn.disabled = !hasSave;
+  const localKey = storageKey(`nationstate_active_save_${currentScenario}`);
+  const hasSave = localStorage.getItem(localKey) !== null || localStorage.getItem(storageKey(SAVE_KEY)) !== null;
+  if (resumeBtn) resumeBtn.style.display = hasSave ? 'inline-flex' : 'none';
+  if (mainMenuResumeBtn) mainMenuResumeBtn.style.display = hasSave ? 'inline-flex' : 'none';
+  if (loadBtn) loadBtn.disabled = !hasSave;
+  if (mainMenuLoadBtn) mainMenuLoadBtn.disabled = !hasSave;
+  if (deleteSaveBtn) deleteSaveBtn.disabled = !hasSave;
+  if (mainMenuDeleteSaveBtn) mainMenuDeleteSaveBtn.disabled = !hasSave;
   if (mobileLoadBtn) mobileLoadBtn.disabled = !hasSave;
   if (mobileDeleteSaveBtn) mobileDeleteSaveBtn.disabled = !hasSave;
   updateHomeContinueButton();
@@ -1598,10 +1717,12 @@ function handleTurn(chosenOption?: DecisionOption, decisionId?: string) {
   saveGame();
 }
 
-function resetGameToScenario(scenarioKey: ScenarioKey) {
+function resetGameToScenario(scenarioKey: ScenarioKey): boolean {
+  const existing = localStorage.getItem(storageKey(`nationstate_active_save_${scenarioKey}`));
+  if (existing && !window.confirm('Starting a new game will replace the saved game for this scenario. Continue?')) return false;
   if (isAutoplayRunning) stopAutoplay();
   currentScenario = scenarioKey;
-  scenarioSelect.value = scenarioKey;
+  if (scenarioSelect) scenarioSelect.value = scenarioKey;
   if (mobileScenarioSelect) mobileScenarioSelect.value = scenarioKey;
   state = getScenarioInitialState(scenarioKey);
   currentDecision = undefined;
@@ -1628,6 +1749,7 @@ function resetGameToScenario(scenarioKey: ScenarioKey) {
   setMobileTab('desk');
   render();
   saveGame();
+  return true;
 }
 
 function stopAutoplay() {
@@ -1680,11 +1802,16 @@ autoplayBtn.addEventListener('click', () => {
 });
 
 // Scenario Selector
-scenarioSelect.addEventListener('change', () => {
-  const selected = scenarioSelect.value as ScenarioKey;
-  if (mobileScenarioSelect) mobileScenarioSelect.value = selected;
-  resetGameToScenario(selected);
-});
+if (scenarioSelect) {
+  scenarioSelect.addEventListener('change', () => {
+    const selected = scenarioSelect.value as ScenarioKey;
+    if (!resetGameToScenario(selected)) {
+      scenarioSelect.value = currentScenario;
+      return;
+    }
+    if (mobileScenarioSelect) mobileScenarioSelect.value = selected;
+  });
+}
 
 // Mobile Actions Toggle & Dropdown Drawer
 if (mobileActionsToggleBtn && mobileActionsDrawer) {
@@ -1709,15 +1836,18 @@ if (mobileActionsToggleBtn && mobileActionsDrawer) {
 if (mobileScenarioSelect) {
   mobileScenarioSelect.addEventListener('change', () => {
     const selected = mobileScenarioSelect.value as ScenarioKey;
-    scenarioSelect.value = selected;
-    resetGameToScenario(selected);
+    if (!resetGameToScenario(selected)) {
+      mobileScenarioSelect.value = currentScenario;
+      return;
+    }
+    if (scenarioSelect) scenarioSelect.value = selected;
     if (mobileActionsDrawer) mobileActionsDrawer.classList.remove('open');
   });
 }
 
 if (mobileSaveBtn) {
-  mobileSaveBtn.addEventListener('click', () => {
-    saveGame();
+  mobileSaveBtn.addEventListener('click', async () => {
+    if (!await saveGame()) { window.alert('The game could not be saved.'); return; }
     turnLogsHistory.push('[Save/Load] Game saved successfully.');
     renderLogs();
     updateSaveControls();
@@ -1738,8 +1868,8 @@ if (mobileLoadBtn) {
 }
 
 if (mobileDeleteSaveBtn) {
-  mobileDeleteSaveBtn.addEventListener('click', () => {
-    deleteSave();
+  mobileDeleteSaveBtn.addEventListener('click', async () => {
+    if (!await deleteSave()) return;
     turnLogsHistory.push('[Save/Load] Saved game data removed.');
     renderLogs();
     updateSaveControls();
@@ -1755,78 +1885,219 @@ if (mobilePastRunsBtn) {
   });
 }
 
-// Save / Load Controls
-resumeBtn.addEventListener('click', async () => {
-  if (isAutoplayRunning) stopAutoplay();
-  if (await loadGame()) {
-    turnLogsHistory.push('[Save/Load] Resumed saved game.');
+const targetMenuBtn = document.getElementById('universal-menu-btn') || document.getElementById('menu-btn') || document.getElementById('menu-home-btn') || document.querySelector('[data-menu-btn]');
+const targetMenuModal = document.getElementById('main-menu-modal');
+
+if (targetMenuBtn && targetMenuModal) {
+  targetMenuBtn.addEventListener('click', (e) => {
+    if (e) e.stopPropagation();
+    updateSaveControls();
+    updateAdminVisibility();
+    targetMenuModal.classList.toggle('hidden');
+    if (targetMenuModal.classList.contains('hidden')) {
+      targetMenuModal.style.display = 'none';
+    } else {
+      targetMenuModal.style.display = 'flex';
+    }
+  });
+}
+
+if (closeMainMenuBtn && targetMenuModal) {
+  closeMainMenuBtn.addEventListener('click', () => {
+    targetMenuModal.classList.add('hidden');
+    targetMenuModal.style.display = 'none';
+  });
+}
+
+if (targetMenuModal) {
+  targetMenuModal.addEventListener('click', (e) => {
+    if (e.target === targetMenuModal) {
+      targetMenuModal.classList.add('hidden');
+      targetMenuModal.style.display = 'none';
+    }
+  });
+}
+
+if (mainMenuResumeBtn) {
+  mainMenuResumeBtn.addEventListener('click', async () => {
+    if (isAutoplayRunning) stopAutoplay();
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
+    if (await loadGame()) {
+      turnLogsHistory.push('[Save/Load] Resumed saved game.');
+      renderLogs();
+    }
+  });
+}
+
+if (mainMenuSaveBtn) {
+  mainMenuSaveBtn.addEventListener('click', async () => {
+    if (!await saveGame()) { window.alert('The game could not be saved.'); return; }
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
+    turnLogsHistory.push('[Save/Load] Game saved successfully.');
     renderLogs();
-  }
-});
+  });
+}
 
-saveBtn.addEventListener('click', () => {
-  saveGame();
-  turnLogsHistory.push('[Save/Load] Game saved successfully.');
-  renderLogs();
-});
+if (mainMenuLoadBtn) {
+  mainMenuLoadBtn.addEventListener('click', async () => {
+    if (isAutoplayRunning) stopAutoplay();
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
+    if (await loadGame()) {
+      turnLogsHistory.push('[Save/Load] Game loaded successfully.');
+      renderLogs();
+    }
+  });
+}
 
-loadBtn.addEventListener('click', async () => {
-  if (isAutoplayRunning) stopAutoplay();
-  if (await loadGame()) {
-    turnLogsHistory.push('[Save/Load] Game loaded successfully.');
+if (mainMenuRunsBtn) {
+  mainMenuRunsBtn.addEventListener('click', () => {
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
+    renderHistoryTable();
+    if (historyBackToReportBtn) historyBackToReportBtn.style.display = 'none';
+    if (historyModal) historyModal.style.display = 'flex';
+  });
+}
+
+if (mainMenuSettingsBtn) {
+  mainMenuSettingsBtn.addEventListener('click', () => {
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
+    if (settingsModal) settingsModal.style.display = 'flex';
+  });
+}
+
+if (closeSettingsBtn) {
+  closeSettingsBtn.addEventListener('click', () => {
+    if (settingsModal) settingsModal.style.display = 'none';
+  });
+}
+
+if (settingsModal) {
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+      settingsModal.style.display = 'none';
+    }
+  });
+}
+
+if (mainMenuTitleBtn) {
+  mainMenuTitleBtn.addEventListener('click', () => {
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
+    showHomeScreen();
+  });
+}
+
+if (mainMenuDeleteSaveBtn) {
+  mainMenuDeleteSaveBtn.addEventListener('click', async () => {
+    if (!await deleteSave()) return;
+    if (settingsModal) settingsModal.style.display = 'none';
+    turnLogsHistory.push('[Save/Load] Saved game data removed.');
     renderLogs();
-  }
-});
+  });
+}
 
-deleteSaveBtn.addEventListener('click', () => {
-  deleteSave();
-  turnLogsHistory.push('[Save/Load] Saved game data removed.');
-  renderLogs();
-});
+if (mainMenuDebugBtn) {
+  mainMenuDebugBtn.addEventListener('click', () => {
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
+    showReportCard();
+  });
+}
+
+// Save / Load Controls (Safely Null-Checked)
+if (resumeBtn) {
+  resumeBtn.addEventListener('click', async () => {
+    if (isAutoplayRunning) stopAutoplay();
+    if (await loadGame()) {
+      turnLogsHistory.push('[Save/Load] Resumed saved game.');
+      renderLogs();
+    }
+  });
+}
+
+if (saveBtn) {
+  saveBtn.addEventListener('click', async () => {
+    if (!await saveGame()) { window.alert('The game could not be saved.'); return; }
+    turnLogsHistory.push('[Save/Load] Game saved successfully.');
+    renderLogs();
+  });
+}
+
+if (loadBtn) {
+  loadBtn.addEventListener('click', async () => {
+    if (isAutoplayRunning) stopAutoplay();
+    if (await loadGame()) {
+      turnLogsHistory.push('[Save/Load] Game loaded successfully.');
+      renderLogs();
+    }
+  });
+}
+
+if (deleteSaveBtn) {
+  deleteSaveBtn.addEventListener('click', async () => {
+    if (!await deleteSave()) return;
+    turnLogsHistory.push('[Save/Load] Saved game data removed.');
+    renderLogs();
+  });
+}
 
 // Past Runs Modal
-pastRunsBtn.addEventListener('click', () => {
-  renderHistoryTable();
-  if (historyBackToReportBtn) historyBackToReportBtn.style.display = 'none';
-  historyModal.style.display = 'flex';
-});
+if (pastRunsBtn) {
+  pastRunsBtn.addEventListener('click', () => {
+    renderHistoryTable();
+    if (historyBackToReportBtn) historyBackToReportBtn.style.display = 'none';
+    historyModal.style.display = 'flex';
+  });
+}
 
-closeHistoryBtn.addEventListener('click', () => {
-  historyModal.style.display = 'none';
-});
+if (closeHistoryBtn) {
+  closeHistoryBtn.addEventListener('click', () => {
+    if (historyModal) historyModal.style.display = 'none';
+  });
+}
 
-historyModal.addEventListener('click', (e) => {
-  if (e.target === historyModal) {
-    historyModal.style.display = 'none';
-  }
-});
+if (historyModal) {
+  historyModal.addEventListener('click', (e) => {
+    if (e.target === historyModal) {
+      historyModal.style.display = 'none';
+    }
+  });
+}
 
 // How to Play Modal
-closeHowToPlayBtn.addEventListener('click', () => {
-  howToPlayModal.style.display = 'none';
-});
+if (closeHowToPlayBtn) {
+  closeHowToPlayBtn.addEventListener('click', () => {
+    if (howToPlayModal) howToPlayModal.style.display = 'none';
+  });
+}
 
-closeHowToPlayFooterBtn.addEventListener('click', () => {
-  howToPlayModal.style.display = 'none';
-});
+if (closeHowToPlayFooterBtn) {
+  closeHowToPlayFooterBtn.addEventListener('click', () => {
+    if (howToPlayModal) howToPlayModal.style.display = 'none';
+  });
+}
 
-howToPlayModal.addEventListener('click', (e) => {
-  if (e.target === howToPlayModal) {
-    howToPlayModal.style.display = 'none';
-  }
-});
+if (howToPlayModal) {
+  howToPlayModal.addEventListener('click', (e) => {
+    if (e.target === howToPlayModal) {
+      howToPlayModal.style.display = 'none';
+    }
+  });
+}
 
 // Home Screen Event Listeners
-homeNewGameBtn.addEventListener('click', () => {
-  homeMainView.style.display = 'none';
-  homeScenarioView.style.display = 'flex';
-  selectHomeScenario(selectedHomeScenario);
-});
+if (homeNewGameBtn) {
+  homeNewGameBtn.addEventListener('click', () => {
+    if (homeMainView) homeMainView.style.display = 'none';
+    if (homeScenarioView) homeScenarioView.style.display = 'flex';
+    selectHomeScenario(selectedHomeScenario);
+  });
+}
 
-homeBackBtn.addEventListener('click', () => {
-  homeScenarioView.style.display = 'none';
-  homeMainView.style.display = 'flex';
-});
+if (homeBackBtn) {
+  homeBackBtn.addEventListener('click', () => {
+    if (homeScenarioView) homeScenarioView.style.display = 'none';
+    if (homeMainView) homeMainView.style.display = 'flex';
+  });
+}
 
 homeScenarioCards.forEach((card) => {
   card.addEventListener('click', () => {
@@ -1837,28 +2108,35 @@ homeScenarioCards.forEach((card) => {
   });
 });
 
-homeStartPresidencyBtn.addEventListener('click', () => {
-  resetGameToScenario(selectedHomeScenario);
-  hideHomeScreen();
-});
+if (homeStartPresidencyBtn) {
+  homeStartPresidencyBtn.addEventListener('click', () => {
+    if (resetGameToScenario(selectedHomeScenario)) hideHomeScreen();
+  });
+}
 
-homeContinueBtn.addEventListener('click', async () => {
-  if (await loadGame()) {
-    hideHomeScreen();
-    turnLogsHistory.push('[Save/Load] Resumed saved game from Title Screen.');
-    renderLogs();
-  }
-});
+if (homeContinueBtn) {
+  homeContinueBtn.addEventListener('click', async () => {
+    if (await loadGame()) {
+      hideHomeScreen();
+      turnLogsHistory.push('[Save/Load] Resumed saved game from Title Screen.');
+      renderLogs();
+    }
+  });
+}
 
-homePastRunsBtn.addEventListener('click', () => {
-  renderHistoryTable();
-  if (historyBackToReportBtn) historyBackToReportBtn.style.display = 'none';
-  historyModal.style.display = 'flex';
-});
+if (homePastRunsBtn) {
+  homePastRunsBtn.addEventListener('click', () => {
+    renderHistoryTable();
+    if (historyBackToReportBtn) historyBackToReportBtn.style.display = 'none';
+    if (historyModal) historyModal.style.display = 'flex';
+  });
+}
 
-homeHowToPlayBtn.addEventListener('click', () => {
-  howToPlayModal.style.display = 'flex';
-});
+if (homeHowToPlayBtn) {
+  homeHowToPlayBtn.addEventListener('click', () => {
+    if (howToPlayModal) howToPlayModal.style.display = 'flex';
+  });
+}
 
 // ========================================================
 // Tutorial / Executive Walkthrough Flow Controller
@@ -2012,11 +2290,7 @@ if (tutorialPrevBtn) {
   });
 }
 
-if (menuHomeBtn) {
-  menuHomeBtn.addEventListener('click', () => {
-    showHomeScreen();
-  });
-}
+
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
@@ -2035,9 +2309,11 @@ document.addEventListener('click', (e) => {
   }
 });
 
-clearHistoryBtn.addEventListener('click', () => {
+clearHistoryBtn.addEventListener('click', async () => {
+  if (!window.confirm('Delete all past runs for this account? This cannot be undone.')) return;
+  if (!await clearRunHistory()) { window.alert('Could not clear past runs. Check your connection and try again.'); return; }
   localStorage.removeItem(HISTORY_KEY);
-  renderHistoryTable();
+  void renderHistoryTable();
 });
 
 // Bottom Teletype Strip toggle
@@ -2068,8 +2344,8 @@ if (debugReportCardBtn) {
   });
 }
 
-modalDeleteSaveBtn.addEventListener('click', () => {
-  deleteSave();
+modalDeleteSaveBtn.addEventListener('click', async () => {
+  if (!await deleteSave()) return;
   gameOverOverlay.style.display = 'none';
   showHomeScreen();
 });
@@ -2137,6 +2413,7 @@ if (authLoginBtn) {
       await signInWithGoogle();
     } catch (err) {
       console.error('Sign-in failed:', err);
+      window.alert('Sign-in failed. Please try again; you can still play as a guest.');
     }
   });
 }
@@ -2146,6 +2423,7 @@ if (mobileLoginBtn) {
       await signInWithGoogle();
     } catch (err) {
       console.error('Mobile Sign-in failed:', err);
+      window.alert('Sign-in failed. Please try again; you can still play as a guest.');
     }
   });
 }
@@ -2155,6 +2433,7 @@ if (homeLoginBtn) {
       await signInWithGoogle();
     } catch (err) {
       console.error('Home Sign-in failed:', err);
+      window.alert('Sign-in failed. Please try again; you can still play as a guest.');
     }
   });
 }
@@ -2192,7 +2471,25 @@ if (homeLogoutBtn) {
 }
 
 // Auth State Shift Listener
+let previousAuthAccount: string | null | undefined;
 onAuthStateChange(async (user) => {
+  const nextAccount = user?.id ?? null;
+  const accountChanged = previousAuthAccount !== undefined && previousAuthAccount !== nextAccount;
+  previousAuthAccount = nextAccount;
+  setStorageAccount(user?.id ?? null);
+  if (accountChanged) {
+    if (isAutoplayRunning) stopAutoplay();
+    currentScenario = 'default';
+    state = getScenarioInitialState(currentScenario);
+    currentDecision = undefined;
+    turnLogsHistory.length = 0;
+    historyRecorded = false;
+    if (reportCardModal) reportCardModal.style.display = 'none';
+    if (historyModal) historyModal.style.display = 'none';
+    if (mainMenuModal) mainMenuModal.style.display = 'none';
+    showHomeScreen();
+    render();
+  }
   if (user) {
     const avatarUrl = user.user_metadata.avatar_url || user.user_metadata.picture || 'https://lh3.googleusercontent.com/a/default-user=s96-c';
     const firstInitial = (user.user_metadata.full_name || user.email || 'U').charAt(0).toUpperCase();
@@ -2236,22 +2533,9 @@ onAuthStateChange(async (user) => {
       homeUserName.textContent = user.user_metadata.full_name || user.email || 'User';
     }
 
-    updateSyncStatusPill('synced');
-    
-    // 4. Attempt to fetch active cloud save to sync state
-    try {
-      const cloudSaveState = await loadSave(currentScenario);
-      if (cloudSaveState) {
-        state = cloudSaveState.state;
-        turnLogsHistory.length = 0;
-        if (Array.isArray(cloudSaveState.turnLogsHistory)) {
-          turnLogsHistory.push(...cloudSaveState.turnLogsHistory);
-        }
-        render();
-      }
-    } catch (e) {
-      console.error('Failed to sync cloud state on auth change:', e);
-    }
+    updateSyncStatusPill('local');
+    // Do not replace an in-progress game merely because the auth session changed.
+
   } else {
     // 1. Reset Desktop Header UI
     if (authLoginBtn) authLoginBtn.style.display = 'inline-flex';
@@ -2276,5 +2560,10 @@ onAuthStateChange(async (user) => {
 
   // Refresh controls & table elements dynamically
   updateSaveControls();
-  renderHistoryTable();
+  // Defer Supabase calls until the auth callback has returned.
+  window.setTimeout(async () => {
+    if (user) await Promise.all(Object.keys(scenarios).map(key => loadSave(key)));
+    updateSaveControls();
+    void renderHistoryTable();
+  }, 0);
 });

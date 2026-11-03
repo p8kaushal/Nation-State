@@ -1,0 +1,29 @@
+name: Build and validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run validate
+      - run: npm run test:launch
+      - run: npm run test:cloud
+      - run: npx tsx src/run_scenario_saveload_test.ts
+      - run: npm run test:browser
+        env:
+          CHROME_PATH: /usr/bin/google-chrome

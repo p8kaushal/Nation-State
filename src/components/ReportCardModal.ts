@@ -2,6 +2,10 @@ import { GameState, RunSummary } from '../types/auth';
 import { masterAchievements } from '../lib/achievements';
 import { ScenarioKey, scenarioMetadata } from '../scenarios';
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]!));
+}
+
 /**
  * Helper to clamp values between 0 and 100.
  */
@@ -160,21 +164,21 @@ export function renderReportCardModal(
         <h2 class="report-card-outcome ${winState ? 'win' : 'lose'}">
           ${winState ? 'Mandate Fulfilled' : 'Regime Collapse'}
         </h2>
-        <p class="report-card-reason">${gameOverReason}</p>
+        <p class="report-card-reason">${escapeHtml(gameOverReason)}</p>
       </div>
 
       <div class="report-card-divider">❖</div>
 
       <!-- Grade & Archetype section -->
       <div class="report-grade-section">
-        <div class="report-grade-circle" data-grade="${letterGrade}">
+        <div class="report-grade-circle" data-grade="${escapeHtml(letterGrade)}">
           <span class="report-grade-lbl">GRADE</span>
-          <span class="report-grade-val">${letterGrade}</span>
+          <span class="report-grade-val">${escapeHtml(letterGrade)}</span>
         </div>
         <div class="report-archetype-info">
           <span class="report-archetype-lbl">Governance Archetype</span>
-          <h3 class="report-archetype-val">${archetypeTitle}</h3>
-          <p class="report-archetype-desc">Survives Turn ${turnsSurvived} | Scenario: ${scenarioName}</p>
+          <h3 class="report-archetype-val">${escapeHtml(archetypeTitle)}</h3>
+          <p class="report-archetype-desc">Survives Turn ${turnsSurvived} | Scenario: ${escapeHtml(scenarioName)}</p>
         </div>
       </div>
 
@@ -247,7 +251,8 @@ export function renderReportCardModal(
       <div class="report-card-actions">
         ${isArchive 
           ? `<button id="report-card-archive-back-btn" class="ctrl-btn btn-primary" style="width: 100%;">← Back to Past Runs</button>`
-          : `<button id="report-card-menu-btn" class="ctrl-btn btn-primary">Title Menu</button>
+          : `<button id="report-card-play-new-btn" class="ctrl-btn btn-primary">Play New Game</button>
+             <button id="report-card-menu-btn" class="ctrl-btn btn-secondary">Title Menu</button>
              <button id="report-card-runs-btn" class="ctrl-btn btn-secondary">Past Runs</button>
              <button id="report-card-close-btn" class="ctrl-btn btn-danger">Close</button>`
         }
